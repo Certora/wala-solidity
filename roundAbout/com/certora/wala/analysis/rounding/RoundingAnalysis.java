@@ -28,9 +28,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.certora.wala.analysis.defuse.DefUseGraph;
 import com.certora.wala.analysis.rounding.RoundingAnalysis.RoundingInference.Result;
-import com.certora.wala.cast.solidity.util.JSONOutput;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
+import com.certora.wala.cast.solidity.util.JSONOutput;import com.google.common.collect.Streams;
 import com.ibm.wala.cast.ir.ssa.CAstBinaryOp;
 import com.ibm.wala.cast.loader.AstMethod;
 import com.ibm.wala.cast.loader.AstMethod.DebuggingInformation;
@@ -78,13 +76,7 @@ import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.CancelException;
 import com.ibm.wala.util.NullProgressMonitor;
 import com.ibm.wala.util.collections.HashMapFactory;
-import com.ibm.wala.util.collections.HashSetFactory;
-import com.ibm.wala.util.collections.IteratorUtil;
-import com.ibm.wala.util.collections.Pair;
-import com.ibm.wala.util.graph.NumberedGraph;
-import com.ibm.wala.util.graph.dominators.Dominators;
-import com.ibm.wala.util.graph.impl.GraphInverter;
-import com.ibm.wala.util.graph.labeled.NumberedLabeledGraph;
+import com.ibm.wala.util.collections.HashSetFactory;import com.ibm.wala.util.collections.Pair;import com.ibm.wala.util.graph.dominators.Dominators;import com.ibm.wala.util.graph.labeled.NumberedLabeledGraph;
 import com.ibm.wala.util.graph.labeled.SlowSparseNumberedLabeledGraph;
 import com.ibm.wala.util.graph.traverse.DFS;
 import com.ibm.wala.util.intset.IntSet;
@@ -103,6 +95,8 @@ public class RoundingAnalysis {
 	private final Map<Pair<CGNode, List<Direction>>, Map<FieldReference, Direction>> directionalCalls = HashMapFactory
 			.make();
 
+	private final Map<CGNode, RoundingRecognition> recognitionCache = HashMapFactory.make();
+
 	public RoundingAnalysis(CallGraph CG, PointerAnalysis<InstanceKey> PA, RoundingSummary S) {
 		this.CG = CG;
 		this.PA = PA;
@@ -111,6 +105,16 @@ public class RoundingAnalysis {
 
 	public RoundingAnalysis(CallGraph CG, PointerAnalysis<InstanceKey> PA) {
 		this(CG, PA,  new RoundingSummary.Default());
+	}
+
+	/** Phase 1 recognition for this node (cached). */
+	RoundingRecognition getRecognition(CGNode n) {
+		RoundingRecognition r = recognitionCache.get(n);
+		if (r == null) {
+			r = new RoundingRecognition(n.getIR());
+			recognitionCache.put(n, r);
+		}
+		return r;
 	}
 	
 	private class MaybeBooleanVariable extends AbstractVariable<MaybeBooleanVariable> {
@@ -463,65 +467,32 @@ public class RoundingAnalysis {
 		private class RoundingVariable extends AbstractVariable<RoundingVariable> {
 			int vn;
 			Direction state;
-			SSAInstruction wrt;
 
-			public RoundingVariable(int vn, Direction state, SSAInstruction wrt) {
+			public RoundingVariable(int vn, Direction state) {
 				this.vn = vn;
-				this.wrt = wrt;
 				this.state = state;
 			}
 
 			@Override
 			public void copyState(RoundingVariable v) {
 				state = v.state;
-				wrt = v.wrt;
 			}
 
 			@Override
 			public String toString() {
-				return "<" + vn + ":" + state + "(" + wrt + ")>";
+				return "<" + vn + ":" + state + ">";
 			}
 		}
 
 		private final AbstractOperator<RoundingVariable> phiOperator = new AbstractOperator<RoundingVariable>() {
 			@Override
 			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
-				boolean up = rhs[0].state == Direction.Up;
-				SSAInstruction upHack = rhs[0].wrt;
-				if (upHack != null) {
-					check: {
-						for (int i = 1; i < rhs.length; i++) {
-							if (rhs[i].wrt != upHack) {
-								break check;
-							}
-							up |= (rhs[i].state == Direction.Up);
-						}
-
-						if (up) {
-							if (lhs.state != Direction.Up) {
-								lhs.state = Direction.Up;
-								lhs.wrt = rhs[0].wrt;
-								return CHANGED;
-							}
-						}
-					}
-				}
-
-				SSAInstruction wrt = rhs[0].wrt;
-				Direction d = rhs[0].state;
-				if (d == null) {
-					d = Direction.Neither;
-				}
+				Direction d = rhs[0].state == null ? Direction.Neither : rhs[0].state;
 				for (int i = 1; i < rhs.length; i++) {
 					d = d.meet(rhs[i].state == null ? Direction.Neither : rhs[i].state);
-					if (rhs[i].wrt != wrt) {
-						wrt = null;
-					}
 				}
-
-				if (d != lhs.state || wrt != lhs.wrt) {
+				if (d != lhs.state) {
 					lhs.state = d;
-					lhs.wrt = wrt;
 					return CHANGED;
 				} else {
 					return NOT_CHANGED;
@@ -549,9 +520,8 @@ public class RoundingAnalysis {
 			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
 				Direction d = rhs[0].state;
 
-				if (d != lhs.state || lhs.wrt != rhs[0].wrt) {
+				if (d != lhs.state) {
 					lhs.state = d;
-					lhs.wrt = rhs[0].wrt;
 					return CHANGED;
 				} else {
 					return NOT_CHANGED;
@@ -580,9 +550,8 @@ public class RoundingAnalysis {
 				if (rhs[0] != null && rhs[0].state != null) {
 					Direction d = rhs[0].state.flip();
 
-					if (d != lhs.state || lhs.wrt != rhs[0].wrt) {
+					if (d != lhs.state) {
 						lhs.state = d;
-						lhs.wrt = rhs[0].wrt;
 						return CHANGED;
 					}
 				}
@@ -608,9 +577,8 @@ public class RoundingAnalysis {
 		private AbstractOperator<RoundingVariable> assignOperator = new AbstractOperator<RoundingVariable>() {
 			@Override
 			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
-				if (lhs.state != rhs[0].state || lhs.wrt != rhs[0].wrt) {
+				if (lhs.state != rhs[0].state) {
 					lhs.state = rhs[0].state;
-					lhs.wrt = rhs[0].wrt;
 					return CHANGED;
 				} else {
 					return NOT_CHANGED;
@@ -637,16 +605,10 @@ public class RoundingAnalysis {
 		private class BinaryOperator extends AbstractOperator<RoundingVariable> {
 			private final boolean flipRight;
 			private final Direction init;
-			protected final SSAInstruction inst;
-
-			public BinaryOperator(boolean flipRight, Direction init, SSAInstruction inst) {
-				this.flipRight = flipRight;
-				this.init = init;
-				this.inst = inst;
-			}
 
 			public BinaryOperator(boolean flipRight, Direction init) {
-				this(flipRight, init, null);
+				this.flipRight = flipRight;
+				this.init = init;
 			}
 
 			@Override
@@ -656,9 +618,8 @@ public class RoundingAnalysis {
 					d = d == null ? d : d.combine(flipRight ? rhs[1].state.flip() : rhs[1].state);
 					d = d == null ? init : init.combine(d);
 
-					if (d != lhs.state || (rhs[0].wrt == rhs[1].wrt && rhs[0].wrt != lhs.wrt)) {
+					if (d != lhs.state) {
 						lhs.state = d;
-						lhs.wrt = init != Direction.Neither ? inst : rhs[0].wrt == rhs[1].wrt ? rhs[0].wrt : null;
 						return CHANGED;
 					}
 				}
@@ -682,89 +643,6 @@ public class RoundingAnalysis {
 				return "rounding bin op " + init + " " + flipRight;
 			}
 
-		}
-
-		private class RoundUpDetectingAddOperator extends BinaryOperator {
-			RoundUpDetectingAddOperator(SSAInstruction inst) {
-				super(false, Direction.Neither, inst);
-			}
-
-			boolean inCycle(int v1, int v2) {
-				SSAInstruction d1 = du.getDef(v1);
-				SSAInstruction d2 = du.getDef(v2);
-				return d1 != null && 
-					d2 != null &&
-					getDeriving(d1).contains(d2) &&
-					getDeriving(d2).contains(d1);
-			}
-			
-			private boolean isDivArgRoundedDownResult(int vn) {
-				if (isDivOpResult(vn)) {
-					SSAInstruction inst = du.getDef(vn);
-					for(int i = 0; i < inst.getNumberOfUses(); i++) {
-						if (getVariable(inst.getUse(i)).state == Direction.Down) {
-							return true;
-						}
-					}
-				}
-				
-				return false;
-			}
-			
-			private boolean isDivOpResult(int vn) {
-				return (du.getDef(vn) instanceof SSABinaryOpInstruction
-					     && 
-					     ((SSABinaryOpInstruction) du.getDef(vn))
-						   .getOperator() == IBinaryOpInstruction.Operator.DIV)
-					   ||
-					   ((du.getDef(vn) instanceof SSAAbstractInvokeInstruction)
-					    &&
-					    getSummaryIfAny((SSAAbstractInvokeInstruction)du.getDef(vn)) != null
-					    &&
-					    getSummaryIfAny((SSAAbstractInvokeInstruction)du.getDef(vn)).isDivOp);
-			}
-			
-			boolean isDivDown(RoundingVariable v) {
-				return v != null 
-						&& v.state == Direction.Down 
-						&& v.wrt != null 
-						&& v.wrt.getDef() == v.vn
-						&& isDivOpResult(v.vn);
-			}
-
-			private boolean mightBeNonZero(RoundingVariable v) {
-				Boolean x = booleanConstants.getConstant(v.vn);
-				return (x == null || x.booleanValue()) || (ir.getSymbolTable().isConstant(v.vn) && Integer.valueOf(0).equals(ir.getSymbolTable().getConstantValue(v.vn)));
-			}
-			
-			private boolean isNotAddChain(int vn) {
-				return IteratorUtil.count(du.getUses(vn)) != 1 ||
-					   !(du.getUses(vn).next() instanceof SSABinaryOpInstruction  &&
-					     ((SSABinaryOpInstruction)du.getUses(vn).next()).getOperator() == IBinaryOpInstruction.Operator.ADD);		   
-			}
-			
-			@Override
-			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
-				if (isDivDown(rhs[0]) && rhs[1].state == Direction.Neither && mightBeNonZero(rhs[1]) && !inCycle(lhs.vn, rhs[1].vn) && isNotAddChain(lhs.vn)) {
-					Direction d = isDivArgRoundedDownResult(rhs[0].vn)? Direction.Inconsistent: Direction.Up;
-					if (lhs.state != d) {
-						lhs.state = d;
-						lhs.wrt = rhs[0].wrt;
-						return CHANGED;
-					}
-				} else if (isDivDown(rhs[1]) && rhs[0].state == Direction.Neither && mightBeNonZero(rhs[0]) && !inCycle(lhs.vn, rhs[0].vn) && isNotAddChain(lhs.vn)) { 
-					Direction d = isDivArgRoundedDownResult(rhs[1].vn)? Direction.Inconsistent: Direction.Up;
-					if (lhs.state != d) {
-						lhs.state = d;
-						lhs.wrt = rhs[1].wrt;
-						return CHANGED;
-					}					
-				} else {
-					return super.evaluate(lhs, rhs);
-				}
-
-				return NOT_CHANGED;
-			}
 		}
 
 		class ConstantOperator extends AbstractOperator<RoundingVariable> {
@@ -800,49 +678,53 @@ public class RoundingAnalysis {
 			}
 		};
 
+		/** A ceiling idiom recognized by Phase 1: divUp(dividend, divisor). */
+		private class RoundUpIdiomOperator extends AbstractOperator<RoundingVariable> {
+			private final int dividend;
+			private final int divisor;
+
+			RoundUpIdiomOperator(int dividend, int divisor) {
+				this.dividend = dividend;
+				this.divisor = divisor;
+			}
+
+			@Override
+			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
+				Direction dd = getVariable(dividend).state;
+				Direction dv = getVariable(divisor).state;
+				if (dd != null && dv != null) {
+					Direction d = Direction.Up.combine(dd).combine(dv.flip());
+					if (d != lhs.state) {
+						lhs.state = d;
+						return CHANGED;
+					}
+				}
+				return NOT_CHANGED;
+			}
+
+			@Override
+			public int hashCode() {
+				return 41 * dividend + divisor;
+			}
+
+			@Override
+			public boolean equals(Object o) {
+				return o instanceof RoundUpIdiomOperator && ((RoundUpIdiomOperator) o).dividend == dividend
+						&& ((RoundUpIdiomOperator) o).divisor == divisor;
+			}
+
+			@Override
+			public String toString() {
+				return "round-up idiom divUp(" + dividend + ", " + divisor + ")";
+			}
+		}
+
 		private final CGNode n;
 		private final IR ir;
 		private final DefUse du;
 		private final DefUseGraph dug;
 		private final List<Direction> parameters;
-
-		private Set<SSAInstruction> getRelevant(SSAInstruction inst, NumberedGraph<Integer> g) {
-			if (inst == null) {
-				return Collections.emptySet();
-			} else if (inst.hasDef()) {
-				int v = inst.getDef();
-				return DFS.getReachableNodes(g, Collections.singleton(v)).stream().map(i -> dug.du().getDef(i))
-						.filter(instr -> instr != null).collect(Collectors.toSet());
-			} else {
-				return Collections.emptySet();
-			}
-		}
-
-		private Set<SSAInstruction> getDeriving(SSAInstruction inst) {
-			return getRelevant(inst, GraphInverter.invert(dug));
-		}
-
-		private Set<SSAInstruction> getDivisorRelated(SSABinaryOpInstruction div) {
-			return getDeriving(dug.du().getDef(div.getUse(1)));
-		}
-
-		private Set<SSAInstruction> getDividendRelated(SSABinaryOpInstruction div) {
-			return getDeriving(dug.du().getDef(div.getUse(0)));
-		}
-
-		/*
-		 * private Set<SSAInstruction> getQuotientRelated(SSABinaryOpInstruction div) {
-		 * return getDerived(div); }
-		 */
-
-		private static MutableIntSet getRelatedValues(int startValue, Set<SSAInstruction> related, boolean forward) {
-			return IntSetUtil.make(IntStream.concat(
-					related.stream()
-							.map(inst -> (forward ? IntStream.of(inst.getDef()).filter(i -> i > 0)
-									: IntStream.range(0, inst.getNumberOfUses()).map(i -> inst.getUse(i))))
-							.reduce((a, b) -> IntStream.concat(a, b)).orElse(IntStream.empty()),
-					IntStream.of(startValue)).distinct().toArray());
-		}
+		private final RoundingRecognition recognition;
 
 		private ControlDependenceGraph<ISSABasicBlock> cdg = null;
 		
@@ -886,6 +768,7 @@ public class RoundingAnalysis {
 			this.parameters = parameters;
 			this.n = n;
 			this.dug = new DefUseGraph(ir);
+			this.recognition = getRecognition(n);
 
 			computeDeadBlocks(n);
 
@@ -909,11 +792,6 @@ public class RoundingAnalysis {
 					RoundingSummary.Value summary = getSummaryIfAny(callInst);
 					if (summary != null) {
 						d = summary.result;
-						if (summary.isDivOp) {
-							if (lhs.wrt != callInst) {
-								lhs.wrt = callInst;
-							}
-						}
 						
 					} else {					
 						for (CGNode cgn : CG.getPossibleTargets(n, callInst.getCallSite())) {
@@ -977,27 +855,15 @@ public class RoundingAnalysis {
 				public void visitBinaryOp(SSABinaryOpInstruction instruction) {
 					IBinaryOpInstruction.IOperator op = instruction.getOperator();
 					if (op == IBinaryOpInstruction.Operator.ADD) {
-						result = new RoundUpDetectingAddOperator(instruction);
+						result = new BinaryOperator(false, Direction.Neither);
 
 					} else if (op == IBinaryOpInstruction.Operator.MUL || op == IShiftInstruction.Operator.SHL) {
 						result = new BinaryOperator(false, Direction.Neither);
 
 					} else if (op == IBinaryOpInstruction.Operator.DIV) {
-						Set<SSAInstruction> divisor = getDivisorRelated(instruction);
-						
-						Set<SSAInstruction> dividend = getDividendRelated(instruction);
-						Set<SSAInstruction> dividendAddends = dividend.stream()
-							.filter(inst -> inst instanceof SSABinaryOpInstruction && ((SSABinaryOpInstruction)inst).getOperator() == IBinaryOpInstruction.Operator.ADD)
-							.map(inst -> getDeriving(inst))
-							.reduce((l, r) -> Sets.union(l,  r))
-							.orElse(Collections.emptySet());
-						
-						MutableIntSet bothValues = getRelatedValues(instruction.getUse(1), divisor, false);
-						bothValues.intersectWith(getRelatedValues(instruction.getUse(0), dividendAddends, false));
-						
-						Direction d = bothValues.isEmpty() ? Direction.Down : Direction.Up;
+						Direction d = recognition.divDirection(instruction);
 
-						result = new BinaryOperator(true, d, instruction);
+						result = new BinaryOperator(true, d);
 
 					} else if (op == IBinaryOpInstruction.Operator.SUB) {
 
@@ -1025,7 +891,12 @@ public class RoundingAnalysis {
 
 				@Override
 				public void visitPhi(SSAPhiInstruction instruction) {
-					result = phiOperator;
+					int[] ops = recognition.roundUpIdiomOperands(instruction);
+					if (ops != null) {
+						result = new RoundUpIdiomOperator(ops[0], ops[1]);
+					} else {
+						result = phiOperator;
+					}
 				}
 
 				@Override
@@ -1172,16 +1043,16 @@ public class RoundingAnalysis {
 					} 
 					
 					if (ir.getSymbolTable().isConstant(valueNumber)) {
-						v = new RoundingVariable(valueNumber, Direction.Neither, null);
+						v = new RoundingVariable(valueNumber, Direction.Neither);
 
 					} else if (valueNumber <= parameters.size()) {
-						v = new RoundingVariable(valueNumber, parameters.get(valueNumber - 1), null);
+						v = new RoundingVariable(valueNumber, parameters.get(valueNumber - 1));
 
 					} else if (du.getDef(valueNumber) instanceof SSAAbstractInvokeInstruction) {
-						v = new RoundingVariable(valueNumber, Direction.Neither, du.getDef(valueNumber));
+						v = new RoundingVariable(valueNumber, Direction.Neither);
 
 					} else {
-						v = new RoundingVariable(valueNumber, Direction.Neither, null);
+						v = new RoundingVariable(valueNumber, Direction.Neither);
 					}
 
 					if (hasReturn(valueNumber)) {
