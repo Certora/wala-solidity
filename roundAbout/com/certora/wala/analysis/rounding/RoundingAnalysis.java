@@ -688,10 +688,11 @@ public class RoundingAnalysis {
 				this.divisor = divisor;
 			}
 
+			// rhs = [dividend, divisor] (injected in injectDivergenceEquations).
 			@Override
 			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
-				Direction dd = getVariable(dividend).state;
-				Direction dv = getVariable(divisor).state;
+				Direction dd = rhs[0].state;
+				Direction dv = rhs[1].state;
 				if (dd != null && dv != null) {
 					Direction d = Direction.Up.combine(dd).combine(dv.flip());
 					if (d != lhs.state) {
@@ -716,6 +717,211 @@ public class RoundingAnalysis {
 			@Override
 			public String toString() {
 				return "round-up idiom divUp(" + dividend + ", " + divisor + ")";
+			}
+		}
+
+		/**
+		 * A branch merge whose guard may round (Phase 1's {@link RoundingRecognition.GuardedMerge}).
+		 * When a compared operand rounds, the integer and real runs can take different arms, so the
+		 * merged value combines the ordinary arm meet with the divergence contribution. A recognized
+		 * clamp gives that contribution precisely; otherwise a rounded guard floors to Inconsistent.
+		 */
+		private class GuardedMergeOperator extends AbstractOperator<RoundingVariable> {
+			private final RoundingRecognition.GuardedMerge gm;
+
+			GuardedMergeOperator(RoundingRecognition.GuardedMerge gm) {
+				this.gm = gm;
+			}
+
+			// rhs = [guard, bound, thenArm, elseArm] (injected in injectDivergenceEquations).
+			@Override
+			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
+				Direction dGuard = rhs[0].state;
+				Direction dBound = rhs[1].state;
+				Direction dThen = rhs[2].state;
+				Direction dElse = rhs[3].state;
+				if (dGuard == null || dBound == null || dThen == null || dElse == null) {
+					return NOT_CHANGED;
+				}
+
+				Direction aligned = dThen.meet(dElse);
+				Direction result;
+				if (dGuard == Direction.Neither && dBound == Direction.Neither) {
+					// Guard is exact: both runs always take the same arm, so it is an ordinary merge.
+					result = aligned;
+				} else if (dGuard == Direction.Down && dBound == Direction.Neither) {
+					// Clamp under a round-down guard: in the divergence gap the written value is
+					// bound + k against a real value in (bound, bound + 1) -> overshoot iff k >= 1.
+					Direction divergence = gm.clampOffset >= 1 ? Direction.Up : Direction.Down;
+					result = aligned.combine(divergence);
+				} else {
+					// Rounded guard we cannot resolve precisely: the runs may diverge either way.
+					result = Direction.Inconsistent;
+				}
+
+				if (result != lhs.state) {
+					lhs.state = result;
+					return CHANGED;
+				}
+				return NOT_CHANGED;
+			}
+
+			@Override
+			public int hashCode() {
+				return 92821 * gm.thenArmVN + 613 * gm.elseArmVN + gm.guardVN;
+			}
+
+			@Override
+			public boolean equals(Object o) {
+				if (!(o instanceof GuardedMergeOperator)) {
+					return false;
+				}
+				RoundingRecognition.GuardedMerge g = ((GuardedMergeOperator) o).gm;
+				return g.guardVN == gm.guardVN && g.boundVN == gm.boundVN && g.thenArmVN == gm.thenArmVN
+						&& g.elseArmVN == gm.elseArmVN && g.clampOffset == gm.clampOffset;
+			}
+
+			@Override
+			public String toString() {
+				return "clamp(+" + gm.clampOffset + ") guard=" + gm.guardVN;
+			}
+		}
+
+		/**
+		 * A loop-header phi in a loop whose exit bound may round (Phase 1's
+		 * {@link RoundingRecognition.LoopInduction}). A value that grows monotonically with the
+		 * trip count inherits the bound's direction (the integer run makes fewer or equal
+		 * iterations exactly as the bound rounds down); other carried values under a rounding
+		 * bound diverge and floor to Inconsistent.
+		 */
+		private class LoopInductionOperator extends AbstractOperator<RoundingVariable> {
+			private final RoundingRecognition.LoopInduction li;
+
+			LoopInductionOperator(RoundingRecognition.LoopInduction li) {
+				this.li = li;
+			}
+
+			// rhs = [bound, init, latch, ivInit] (injected in injectDivergenceEquations).
+			@Override
+			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
+				Direction dBound = rhs[0].state;
+				Direction dInit = rhs[1].state;
+				Direction dIvInit = rhs[3].state;
+				if (dBound == null || dInit == null || dIvInit == null) {
+					return NOT_CHANGED;
+				}
+				// Trip count grows with (bound - ivInit): a rounded-down bound gives fewer/equal
+				// integer iterations (dir dBound); a rounded-down induction start gives more
+				// (dir dIvInit flipped).
+				Direction tripDir = dBound.combine(dIvInit.flip());
+				Direction result;
+				if (li.monotone) {
+					// Final value = init + step*(trip count): combine init with the trip direction.
+					result = dInit.combine(tripDir);
+				} else if (tripDir == Direction.Neither) {
+					// No trip-count divergence: ordinary loop-carried merge.
+					Direction dLatch = rhs[2].state;
+					if (dLatch == null) {
+						return NOT_CHANGED;
+					}
+					result = dInit.meet(dLatch);
+				} else {
+					result = Direction.Inconsistent;
+				}
+
+				if (result != lhs.state) {
+					lhs.state = result;
+					return CHANGED;
+				}
+				return NOT_CHANGED;
+			}
+
+			@Override
+			public int hashCode() {
+				return 55049 * li.boundVN + 7 * li.latchVN + (li.monotone ? 1 : 0);
+			}
+
+			@Override
+			public boolean equals(Object o) {
+				if (!(o instanceof LoopInductionOperator)) {
+					return false;
+				}
+				RoundingRecognition.LoopInduction l = ((LoopInductionOperator) o).li;
+				return l.boundVN == li.boundVN && l.ivInitVN == li.ivInitVN && l.monotone == li.monotone
+						&& l.initVN == li.initVN && l.latchVN == li.latchVN;
+			}
+
+			@Override
+			public String toString() {
+				return "loop induction" + (li.monotone ? " monotone" : "") + " bound=" + li.boundVN;
+			}
+		}
+
+		/**
+		 * Soundness backstop (Phase 1's {@link RoundingRecognition.BranchFloor}) for a merge whose
+		 * guard we could not recognize precisely. If any value feeding a controlling guard rounds,
+		 * the two runs can take different paths, so the merged value is Inconsistent; if every guard
+		 * input is exact, the runs stay aligned and it is an ordinary meet.
+		 */
+		private class BranchFloorOperator extends AbstractOperator<RoundingVariable> {
+			private final RoundingRecognition.BranchFloor bf;
+			private final int operandCount;
+
+			BranchFloorOperator(RoundingRecognition.BranchFloor bf) {
+				this.bf = bf;
+				this.operandCount = bf.operandVNs.length;
+			}
+
+			// rhs = [operands..., guardSlice...] (injected in injectDivergenceEquations).
+			@Override
+			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
+				boolean sliceIncomplete = false;
+				for (int i = operandCount; i < rhs.length; i++) {
+					Direction d = rhs[i].state;
+					if (d == null) {
+						sliceIncomplete = true;
+					} else if (d != Direction.Neither) {
+						return set(lhs, Direction.Inconsistent);
+					}
+				}
+				if (sliceIncomplete) {
+					return NOT_CHANGED;
+				}
+				// Every guard input is exact: both runs take the same path, so it is an ordinary merge.
+				Direction result = null;
+				for (int i = 0; i < operandCount; i++) {
+					Direction d = rhs[i].state;
+					if (d == null) {
+						return NOT_CHANGED;
+					}
+					result = result == null ? d : result.meet(d);
+				}
+				return set(lhs, result == null ? Direction.Neither : result);
+			}
+
+			private byte set(RoundingVariable lhs, Direction d) {
+				if (d != lhs.state) {
+					lhs.state = d;
+					return CHANGED;
+				}
+				return NOT_CHANGED;
+			}
+
+			@Override
+			public int hashCode() {
+				return 7919 * operandCount + 31 * bf.operandVNs.length + bf.guardSliceVNs.length;
+			}
+
+			@Override
+			public boolean equals(Object o) {
+				return o instanceof BranchFloorOperator
+						&& java.util.Arrays.equals(((BranchFloorOperator) o).bf.operandVNs, bf.operandVNs)
+						&& java.util.Arrays.equals(((BranchFloorOperator) o).bf.guardSliceVNs, bf.guardSliceVNs);
+			}
+
+			@Override
+			public String toString() {
+				return "branch floor (" + bf.operandVNs.length + " arms, " + bf.guardSliceVNs.length + " guard vals)";
 			}
 		}
 
@@ -891,12 +1097,15 @@ public class RoundingAnalysis {
 
 				@Override
 				public void visitPhi(SSAPhiInstruction instruction) {
-					int[] ops = recognition.roundUpIdiomOperands(instruction);
-					if (ops != null) {
-						result = new RoundUpIdiomOperator(ops[0], ops[1]);
-					} else {
-						result = phiOperator;
+					// Every recognized idiom/divergence phi reads variables beyond its SSA uses
+					// (division operands, guard, bound), so its equation is injected after init().
+					if (recognition.roundUpIdiomOperands(instruction) != null
+							|| recognition.guardedMerge(instruction) != null || recognition.loopInduction(instruction) != null
+							|| recognition.branchFloor(instruction) != null) {
+						result = null;
+						return;
 					}
+					result = phiOperator;
 				}
 
 				@Override
@@ -1065,11 +1274,63 @@ public class RoundingAnalysis {
 			}
 
 			init(ir, new RoundingVariableFactory(), new RoundingOperatorFactory());
+			injectDivergenceEquations(ir);
 			solve(null);
 
 			Pair<CGNode, List<Direction>> key = Pair.make(n, parameters);
 			rawResults.put(key, getRoundingResult());
 			directionalCalls.put(key, getResultOrResults());
+		}
+
+		/**
+		 * Divergence phis read variables (the guard, the loop bound) that are not among their SSA
+		 * uses, so the default def-use equations would never re-fire them when those variables
+		 * settle. We register their equations explicitly with the read variables as operands.
+		 */
+		private void injectDivergenceEquations(IR ir) {
+			ir.iteratePhis().forEachRemaining(inst -> {
+				SSAPhiInstruction phi = (SSAPhiInstruction) inst;
+				int[] ceil = recognition.roundUpIdiomOperands(phi);
+				if (ceil != null) {
+					RoundingVariable[] rhs = makeStmtRHS(2);
+					rhs[0] = getVariable(ceil[0]);
+					rhs[1] = getVariable(ceil[1]);
+					newStatement(getVariable(phi.getDef()), new RoundUpIdiomOperator(ceil[0], ceil[1]), rhs, false, false);
+					return;
+				}
+				RoundingRecognition.GuardedMerge gm = recognition.guardedMerge(phi);
+				if (gm != null) {
+					RoundingVariable[] rhs = makeStmtRHS(4);
+					rhs[0] = getVariable(gm.guardVN);
+					rhs[1] = getVariable(gm.boundVN);
+					rhs[2] = getVariable(gm.thenArmVN);
+					rhs[3] = getVariable(gm.elseArmVN);
+					newStatement(getVariable(phi.getDef()), new GuardedMergeOperator(gm), rhs, false, false);
+					return;
+				}
+				RoundingRecognition.LoopInduction li = recognition.loopInduction(phi);
+				if (li != null) {
+					RoundingVariable[] rhs = makeStmtRHS(4);
+					rhs[0] = getVariable(li.boundVN);
+					rhs[1] = getVariable(li.initVN);
+					rhs[2] = getVariable(li.latchVN);
+					rhs[3] = getVariable(li.ivInitVN);
+					newStatement(getVariable(phi.getDef()), new LoopInductionOperator(li), rhs, false, false);
+					return;
+				}
+				RoundingRecognition.BranchFloor bf = recognition.branchFloor(phi);
+				if (bf != null) {
+					RoundingVariable[] rhs = makeStmtRHS(bf.operandVNs.length + bf.guardSliceVNs.length);
+					int idx = 0;
+					for (int vn : bf.operandVNs) {
+						rhs[idx++] = getVariable(vn);
+					}
+					for (int vn : bf.guardSliceVNs) {
+						rhs[idx++] = getVariable(vn);
+					}
+					newStatement(getVariable(phi.getDef()), new BranchFloorOperator(bf), rhs, false, false);
+				}
+			});
 		}
 
 		private Object returnsConstant(CGNode n) {
