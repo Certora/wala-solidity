@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: private-tests-${{ github.event.workflow_run.head_branch }}
@@ -16,13 +17,30 @@ jobs:
   dispatch:
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main'
+      (
+        (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') ||
+        github.event.workflow_run.event == 'pull_request'
+      )
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check PR label
+        id: check-label
+        if: github.event.workflow_run.event == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: |
+          if [ -n "$PR_NUMBER" ] && gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json labels -q '.labels[].name' \
+            | grep -qx "run-private-tests"; then
+            echo "should_dispatch=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_dispatch=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate app token
         id: app-token
+        if: github.event.workflow_run.event == 'push' || steps.check-label.outputs.should_dispatch == 'true'
         uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.SECURE_APP_ID }}
@@ -31,6 +49,7 @@ jobs:
           repositories: roundabout-tests
 
       - name: Dispatch roundabout-tests workflow
+        if: github.event.workflow_run.event == 'push' || steps.check-label.outputs.should_dispatch == 'true'
         env:
           TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
