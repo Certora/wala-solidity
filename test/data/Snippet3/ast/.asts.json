@@ -1,6 +1,6 @@
 {
     "test/data/Snippet3/Snippet3.sol": {
-        "/Users/chandrakananandi/research/wala-solidity/test/data/Snippet3/Snippet3.sol": {
+        "./test/data/Snippet3/Snippet3.sol": {
             "1": {
                 "certora_contract_name": "Snippet3",
                 "id": 1,
@@ -2590,7 +2590,7 @@
                 "usedEvents": []
             },
             "39": {
-                "absolutePath": "/Users/chandrakananandi/research/wala-solidity/test/data/Snippet3/Snippet3.sol",
+                "absolutePath": "./test/data/Snippet3/Snippet3.sol",
                 "exportedSymbols": {
                     "Snippet3": [
                         38

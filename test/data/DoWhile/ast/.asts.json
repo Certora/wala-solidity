@@ -1,6 +1,6 @@
 {
     "test/data/DoWhile/DoWhile.sol": {
-        "/Users/chandrakananandi/research/wala-solidity/test/data/DoWhile/DoWhile.sol": {
+        "./test/data/DoWhile/DoWhile.sol": {
             "1": {
                 "certora_contract_name": "DoWhile",
                 "id": 1,
@@ -2864,7 +2864,7 @@
                 "usedEvents": []
             },
             "41": {
-                "absolutePath": "/Users/chandrakananandi/research/wala-solidity/test/data/DoWhile/DoWhile.sol",
+                "absolutePath": "./test/data/DoWhile/DoWhile.sol",
                 "exportedSymbols": {
                     "DoWhile": [
                         40
