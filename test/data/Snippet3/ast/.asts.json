@@ -1,0 +1,3131 @@
+{
+    "test/data/Snippet3/Snippet3.sol": {
+        "/Users/chandrakananandi/research/wala-solidity/test/data/Snippet3/Snippet3.sol": {
+            "1": {
+                "certora_contract_name": "Snippet3",
+                "id": 1,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "179:7:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "2": {
+                "certora_contract_name": "Snippet3",
+                "constant": false,
+                "id": 2,
+                "mutability": "mutable",
+                "name": "y",
+                "nameLocation": "187:1:0",
+                "nodeType": "VariableDeclaration",
+                "scope": 37,
+                "src": "179:9:0",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                },
+                "typeName": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 1,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "179:7:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "visibility": "internal"
+            },
+            "3": {
+                "certora_contract_name": "Snippet3",
+                "id": 3,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "190:7:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "4": {
+                "certora_contract_name": "Snippet3",
+                "constant": false,
+                "id": 4,
+                "mutability": "mutable",
+                "name": "z",
+                "nameLocation": "198:1:0",
+                "nodeType": "VariableDeclaration",
+                "scope": 37,
+                "src": "190:9:0",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                },
+                "typeName": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 3,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "190:7:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "visibility": "internal"
+            },
+            "5": {
+                "certora_contract_name": "Snippet3",
+                "id": 5,
+                "nodeType": "ParameterList",
+                "parameters": [
+                    {
+                        "certora_contract_name": "Snippet3",
+                        "constant": false,
+                        "id": 2,
+                        "mutability": "mutable",
+                        "name": "y",
+                        "nameLocation": "187:1:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 37,
+                        "src": "179:9:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        },
+                        "typeName": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 1,
+                            "name": "uint256",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "179:7:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "visibility": "internal"
+                    },
+                    {
+                        "certora_contract_name": "Snippet3",
+                        "constant": false,
+                        "id": 4,
+                        "mutability": "mutable",
+                        "name": "z",
+                        "nameLocation": "198:1:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 37,
+                        "src": "190:9:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        },
+                        "typeName": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 3,
+                            "name": "uint256",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "190:7:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "visibility": "internal"
+                    }
+                ],
+                "src": "178:22:0"
+            },
+            "6": {
+                "certora_contract_name": "Snippet3",
+                "id": 6,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "222:7:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "7": {
+                "certora_contract_name": "Snippet3",
+                "constant": false,
+                "id": 7,
+                "mutability": "mutable",
+                "name": "",
+                "nameLocation": "-1:-1:-1",
+                "nodeType": "VariableDeclaration",
+                "scope": 37,
+                "src": "222:7:0",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                },
+                "typeName": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 6,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "222:7:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "visibility": "internal"
+            },
+            "8": {
+                "certora_contract_name": "Snippet3",
+                "id": 8,
+                "nodeType": "ParameterList",
+                "parameters": [
+                    {
+                        "certora_contract_name": "Snippet3",
+                        "constant": false,
+                        "id": 7,
+                        "mutability": "mutable",
+                        "name": "",
+                        "nameLocation": "-1:-1:-1",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 37,
+                        "src": "222:7:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        },
+                        "typeName": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 6,
+                            "name": "uint256",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "222:7:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "visibility": "internal"
+                    }
+                ],
+                "src": "221:9:0"
+            },
+            "9": {
+                "certora_contract_name": "Snippet3",
+                "id": 9,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "241:7:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "10": {
+                "certora_contract_name": "Snippet3",
+                "constant": false,
+                "id": 10,
+                "mutability": "mutable",
+                "name": "x",
+                "nameLocation": "249:1:0",
+                "nodeType": "VariableDeclaration",
+                "scope": 36,
+                "src": "241:9:0",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                },
+                "typeName": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 9,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "241:7:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "visibility": "internal"
+            },
+            "11": {
+                "certora_contract_name": "Snippet3",
+                "id": 11,
+                "name": "y",
+                "nodeType": "Identifier",
+                "overloadedDeclarations": [],
+                "referencedDeclaration": 2,
+                "src": "253:1:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "12": {
+                "certora_contract_name": "Snippet3",
+                "id": 12,
+                "name": "z",
+                "nodeType": "Identifier",
+                "overloadedDeclarations": [],
+                "referencedDeclaration": 4,
+                "src": "257:1:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "13": {
+                "certora_contract_name": "Snippet3",
+                "commonType": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                },
+                "id": 13,
+                "isConstant": false,
+                "isLValue": false,
+                "isPure": false,
+                "lValueRequested": false,
+                "leftExpression": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 11,
+                    "name": "y",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 2,
+                    "src": "253:1:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "nodeType": "BinaryOperation",
+                "operator": "/",
+                "rightExpression": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 12,
+                    "name": "z",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 4,
+                    "src": "257:1:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "src": "253:5:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "14": {
+                "assignments": [
+                    10
+                ],
+                "certora_contract_name": "Snippet3",
+                "declarations": [
+                    {
+                        "certora_contract_name": "Snippet3",
+                        "constant": false,
+                        "id": 10,
+                        "mutability": "mutable",
+                        "name": "x",
+                        "nameLocation": "249:1:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 36,
+                        "src": "241:9:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        },
+                        "typeName": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 9,
+                            "name": "uint256",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "241:7:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "visibility": "internal"
+                    }
+                ],
+                "id": 14,
+                "initialValue": {
+                    "certora_contract_name": "Snippet3",
+                    "commonType": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    },
+                    "id": 13,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftExpression": {
+                        "certora_contract_name": "Snippet3",
+                        "id": 11,
+                        "name": "y",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2,
+                        "src": "253:1:0",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        }
+                    },
+                    "nodeType": "BinaryOperation",
+                    "operator": "/",
+                    "rightExpression": {
+                        "certora_contract_name": "Snippet3",
+                        "id": 12,
+                        "name": "z",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 4,
+                        "src": "257:1:0",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        }
+                    },
+                    "src": "253:5:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "nodeType": "VariableDeclarationStatement",
+                "src": "241:17:0"
+            },
+            "15": {
+                "certora_contract_name": "Snippet3",
+                "id": 15,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "268:7:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "16": {
+                "certora_contract_name": "Snippet3",
+                "constant": false,
+                "id": 16,
+                "mutability": "mutable",
+                "name": "i",
+                "nameLocation": "276:1:0",
+                "nodeType": "VariableDeclaration",
+                "scope": 36,
+                "src": "268:9:0",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                },
+                "typeName": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 15,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "268:7:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "visibility": "internal"
+            },
+            "17": {
+                "certora_contract_name": "Snippet3",
+                "hexValue": "30",
+                "id": 17,
+                "isConstant": false,
+                "isLValue": false,
+                "isPure": true,
+                "kind": "number",
+                "lValueRequested": false,
+                "nodeType": "Literal",
+                "src": "280:1:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_rational_0_by_1",
+                    "typeString": "int_const 0"
+                },
+                "value": "0"
+            },
+            "18": {
+                "assignments": [
+                    16
+                ],
+                "certora_contract_name": "Snippet3",
+                "declarations": [
+                    {
+                        "certora_contract_name": "Snippet3",
+                        "constant": false,
+                        "id": 16,
+                        "mutability": "mutable",
+                        "name": "i",
+                        "nameLocation": "276:1:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 36,
+                        "src": "268:9:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        },
+                        "typeName": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 15,
+                            "name": "uint256",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "268:7:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "visibility": "internal"
+                    }
+                ],
+                "id": 18,
+                "initialValue": {
+                    "certora_contract_name": "Snippet3",
+                    "hexValue": "30",
+                    "id": 17,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": true,
+                    "kind": "number",
+                    "lValueRequested": false,
+                    "nodeType": "Literal",
+                    "src": "280:1:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_rational_0_by_1",
+                        "typeString": "int_const 0"
+                    },
+                    "value": "0"
+                },
+                "nodeType": "VariableDeclarationStatement",
+                "src": "268:13:0"
+            },
+            "19": {
+                "certora_contract_name": "Snippet3",
+                "id": 19,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "291:7:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "20": {
+                "certora_contract_name": "Snippet3",
+                "constant": false,
+                "id": 20,
+                "mutability": "mutable",
+                "name": "totalPayment",
+                "nameLocation": "299:12:0",
+                "nodeType": "VariableDeclaration",
+                "scope": 36,
+                "src": "291:20:0",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                },
+                "typeName": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 19,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "291:7:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "visibility": "internal"
+            },
+            "21": {
+                "certora_contract_name": "Snippet3",
+                "hexValue": "30",
+                "id": 21,
+                "isConstant": false,
+                "isLValue": false,
+                "isPure": true,
+                "kind": "number",
+                "lValueRequested": false,
+                "nodeType": "Literal",
+                "src": "314:1:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_rational_0_by_1",
+                    "typeString": "int_const 0"
+                },
+                "value": "0"
+            },
+            "22": {
+                "assignments": [
+                    20
+                ],
+                "certora_contract_name": "Snippet3",
+                "declarations": [
+                    {
+                        "certora_contract_name": "Snippet3",
+                        "constant": false,
+                        "id": 20,
+                        "mutability": "mutable",
+                        "name": "totalPayment",
+                        "nameLocation": "299:12:0",
+                        "nodeType": "VariableDeclaration",
+                        "scope": 36,
+                        "src": "291:20:0",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        },
+                        "typeName": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 19,
+                            "name": "uint256",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "291:7:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "visibility": "internal"
+                    }
+                ],
+                "id": 22,
+                "initialValue": {
+                    "certora_contract_name": "Snippet3",
+                    "hexValue": "30",
+                    "id": 21,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": true,
+                    "kind": "number",
+                    "lValueRequested": false,
+                    "nodeType": "Literal",
+                    "src": "314:1:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_rational_0_by_1",
+                        "typeString": "int_const 0"
+                    },
+                    "value": "0"
+                },
+                "nodeType": "VariableDeclarationStatement",
+                "src": "291:24:0"
+            },
+            "23": {
+                "certora_contract_name": "Snippet3",
+                "id": 23,
+                "name": "i",
+                "nodeType": "Identifier",
+                "overloadedDeclarations": [],
+                "referencedDeclaration": 16,
+                "src": "332:1:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "24": {
+                "certora_contract_name": "Snippet3",
+                "id": 24,
+                "name": "x",
+                "nodeType": "Identifier",
+                "overloadedDeclarations": [],
+                "referencedDeclaration": 10,
+                "src": "336:1:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "25": {
+                "certora_contract_name": "Snippet3",
+                "commonType": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                },
+                "id": 25,
+                "isConstant": false,
+                "isLValue": false,
+                "isPure": false,
+                "lValueRequested": false,
+                "leftExpression": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 23,
+                    "name": "i",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 16,
+                    "src": "332:1:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "nodeType": "BinaryOperation",
+                "operator": "<",
+                "rightExpression": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 24,
+                    "name": "x",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 10,
+                    "src": "336:1:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "src": "332:5:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_bool",
+                    "typeString": "bool"
+                }
+            },
+            "26": {
+                "certora_contract_name": "Snippet3",
+                "id": 26,
+                "name": "totalPayment",
+                "nodeType": "Identifier",
+                "overloadedDeclarations": [],
+                "referencedDeclaration": 20,
+                "src": "353:12:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "27": {
+                "certora_contract_name": "Snippet3",
+                "id": 27,
+                "isConstant": false,
+                "isLValue": false,
+                "isPure": false,
+                "lValueRequested": false,
+                "nodeType": "UnaryOperation",
+                "operator": "++",
+                "prefix": false,
+                "src": "353:14:0",
+                "subExpression": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 26,
+                    "name": "totalPayment",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 20,
+                    "src": "353:12:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "28": {
+                "certora_contract_name": "Snippet3",
+                "expression": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 27,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "nodeType": "UnaryOperation",
+                    "operator": "++",
+                    "prefix": false,
+                    "src": "353:14:0",
+                    "subExpression": {
+                        "certora_contract_name": "Snippet3",
+                        "id": 26,
+                        "name": "totalPayment",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 20,
+                        "src": "353:12:0",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        }
+                    },
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "id": 28,
+                "nodeType": "ExpressionStatement",
+                "src": "353:14:0"
+            },
+            "29": {
+                "certora_contract_name": "Snippet3",
+                "id": 29,
+                "name": "i",
+                "nodeType": "Identifier",
+                "overloadedDeclarations": [],
+                "referencedDeclaration": 16,
+                "src": "381:1:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "30": {
+                "certora_contract_name": "Snippet3",
+                "id": 30,
+                "isConstant": false,
+                "isLValue": false,
+                "isPure": false,
+                "lValueRequested": false,
+                "nodeType": "UnaryOperation",
+                "operator": "++",
+                "prefix": false,
+                "src": "381:3:0",
+                "subExpression": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 29,
+                    "name": "i",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 16,
+                    "src": "381:1:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "31": {
+                "certora_contract_name": "Snippet3",
+                "expression": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 30,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "nodeType": "UnaryOperation",
+                    "operator": "++",
+                    "prefix": false,
+                    "src": "381:3:0",
+                    "subExpression": {
+                        "certora_contract_name": "Snippet3",
+                        "id": 29,
+                        "name": "i",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 16,
+                        "src": "381:1:0",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        }
+                    },
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "id": 31,
+                "nodeType": "ExpressionStatement",
+                "src": "381:3:0"
+            },
+            "32": {
+                "certora_contract_name": "Snippet3",
+                "id": 32,
+                "nodeType": "Block",
+                "src": "339:56:0",
+                "statements": [
+                    {
+                        "certora_contract_name": "Snippet3",
+                        "expression": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 27,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "nodeType": "UnaryOperation",
+                            "operator": "++",
+                            "prefix": false,
+                            "src": "353:14:0",
+                            "subExpression": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 26,
+                                "name": "totalPayment",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 20,
+                                "src": "353:12:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "id": 28,
+                        "nodeType": "ExpressionStatement",
+                        "src": "353:14:0"
+                    },
+                    {
+                        "certora_contract_name": "Snippet3",
+                        "expression": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 30,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "nodeType": "UnaryOperation",
+                            "operator": "++",
+                            "prefix": false,
+                            "src": "381:3:0",
+                            "subExpression": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 29,
+                                "name": "i",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 16,
+                                "src": "381:1:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "id": 31,
+                        "nodeType": "ExpressionStatement",
+                        "src": "381:3:0"
+                    }
+                ]
+            },
+            "33": {
+                "body": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 32,
+                    "nodeType": "Block",
+                    "src": "339:56:0",
+                    "statements": [
+                        {
+                            "certora_contract_name": "Snippet3",
+                            "expression": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 27,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "nodeType": "UnaryOperation",
+                                "operator": "++",
+                                "prefix": false,
+                                "src": "353:14:0",
+                                "subExpression": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 26,
+                                    "name": "totalPayment",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 20,
+                                    "src": "353:12:0",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    }
+                                },
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "id": 28,
+                            "nodeType": "ExpressionStatement",
+                            "src": "353:14:0"
+                        },
+                        {
+                            "certora_contract_name": "Snippet3",
+                            "expression": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 30,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "nodeType": "UnaryOperation",
+                                "operator": "++",
+                                "prefix": false,
+                                "src": "381:3:0",
+                                "subExpression": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 29,
+                                    "name": "i",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 16,
+                                    "src": "381:1:0",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    }
+                                },
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "id": 31,
+                            "nodeType": "ExpressionStatement",
+                            "src": "381:3:0"
+                        }
+                    ]
+                },
+                "certora_contract_name": "Snippet3",
+                "condition": {
+                    "certora_contract_name": "Snippet3",
+                    "commonType": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    },
+                    "id": 25,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftExpression": {
+                        "certora_contract_name": "Snippet3",
+                        "id": 23,
+                        "name": "i",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 16,
+                        "src": "332:1:0",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        }
+                    },
+                    "nodeType": "BinaryOperation",
+                    "operator": "<",
+                    "rightExpression": {
+                        "certora_contract_name": "Snippet3",
+                        "id": 24,
+                        "name": "x",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 10,
+                        "src": "336:1:0",
+                        "typeDescriptions": {
+                            "certora_contract_name": "Snippet3",
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                        }
+                    },
+                    "src": "332:5:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_bool",
+                        "typeString": "bool"
+                    }
+                },
+                "id": 33,
+                "nodeType": "WhileStatement",
+                "src": "325:70:0"
+            },
+            "34": {
+                "certora_contract_name": "Snippet3",
+                "id": 34,
+                "name": "totalPayment",
+                "nodeType": "Identifier",
+                "overloadedDeclarations": [],
+                "referencedDeclaration": 20,
+                "src": "411:12:0",
+                "typeDescriptions": {
+                    "certora_contract_name": "Snippet3",
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                }
+            },
+            "35": {
+                "certora_contract_name": "Snippet3",
+                "expression": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 34,
+                    "name": "totalPayment",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 20,
+                    "src": "411:12:0",
+                    "typeDescriptions": {
+                        "certora_contract_name": "Snippet3",
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                    }
+                },
+                "functionReturnParameters": 8,
+                "id": 35,
+                "nodeType": "Return",
+                "src": "404:19:0"
+            },
+            "36": {
+                "certora_contract_name": "Snippet3",
+                "id": 36,
+                "nodeType": "Block",
+                "src": "231:199:0",
+                "statements": [
+                    {
+                        "assignments": [
+                            10
+                        ],
+                        "certora_contract_name": "Snippet3",
+                        "declarations": [
+                            {
+                                "certora_contract_name": "Snippet3",
+                                "constant": false,
+                                "id": 10,
+                                "mutability": "mutable",
+                                "name": "x",
+                                "nameLocation": "249:1:0",
+                                "nodeType": "VariableDeclaration",
+                                "scope": 36,
+                                "src": "241:9:0",
+                                "stateVariable": false,
+                                "storageLocation": "default",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                },
+                                "typeName": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 9,
+                                    "name": "uint256",
+                                    "nodeType": "ElementaryTypeName",
+                                    "src": "241:7:0",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    }
+                                },
+                                "visibility": "internal"
+                            }
+                        ],
+                        "id": 14,
+                        "initialValue": {
+                            "certora_contract_name": "Snippet3",
+                            "commonType": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            },
+                            "id": 13,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "leftExpression": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 11,
+                                "name": "y",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 2,
+                                "src": "253:1:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "nodeType": "BinaryOperation",
+                            "operator": "/",
+                            "rightExpression": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 12,
+                                "name": "z",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 4,
+                                "src": "257:1:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "src": "253:5:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "nodeType": "VariableDeclarationStatement",
+                        "src": "241:17:0"
+                    },
+                    {
+                        "assignments": [
+                            16
+                        ],
+                        "certora_contract_name": "Snippet3",
+                        "declarations": [
+                            {
+                                "certora_contract_name": "Snippet3",
+                                "constant": false,
+                                "id": 16,
+                                "mutability": "mutable",
+                                "name": "i",
+                                "nameLocation": "276:1:0",
+                                "nodeType": "VariableDeclaration",
+                                "scope": 36,
+                                "src": "268:9:0",
+                                "stateVariable": false,
+                                "storageLocation": "default",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                },
+                                "typeName": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 15,
+                                    "name": "uint256",
+                                    "nodeType": "ElementaryTypeName",
+                                    "src": "268:7:0",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    }
+                                },
+                                "visibility": "internal"
+                            }
+                        ],
+                        "id": 18,
+                        "initialValue": {
+                            "certora_contract_name": "Snippet3",
+                            "hexValue": "30",
+                            "id": 17,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "kind": "number",
+                            "lValueRequested": false,
+                            "nodeType": "Literal",
+                            "src": "280:1:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_rational_0_by_1",
+                                "typeString": "int_const 0"
+                            },
+                            "value": "0"
+                        },
+                        "nodeType": "VariableDeclarationStatement",
+                        "src": "268:13:0"
+                    },
+                    {
+                        "assignments": [
+                            20
+                        ],
+                        "certora_contract_name": "Snippet3",
+                        "declarations": [
+                            {
+                                "certora_contract_name": "Snippet3",
+                                "constant": false,
+                                "id": 20,
+                                "mutability": "mutable",
+                                "name": "totalPayment",
+                                "nameLocation": "299:12:0",
+                                "nodeType": "VariableDeclaration",
+                                "scope": 36,
+                                "src": "291:20:0",
+                                "stateVariable": false,
+                                "storageLocation": "default",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                },
+                                "typeName": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 19,
+                                    "name": "uint256",
+                                    "nodeType": "ElementaryTypeName",
+                                    "src": "291:7:0",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    }
+                                },
+                                "visibility": "internal"
+                            }
+                        ],
+                        "id": 22,
+                        "initialValue": {
+                            "certora_contract_name": "Snippet3",
+                            "hexValue": "30",
+                            "id": 21,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "kind": "number",
+                            "lValueRequested": false,
+                            "nodeType": "Literal",
+                            "src": "314:1:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_rational_0_by_1",
+                                "typeString": "int_const 0"
+                            },
+                            "value": "0"
+                        },
+                        "nodeType": "VariableDeclarationStatement",
+                        "src": "291:24:0"
+                    },
+                    {
+                        "body": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 32,
+                            "nodeType": "Block",
+                            "src": "339:56:0",
+                            "statements": [
+                                {
+                                    "certora_contract_name": "Snippet3",
+                                    "expression": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 27,
+                                        "isConstant": false,
+                                        "isLValue": false,
+                                        "isPure": false,
+                                        "lValueRequested": false,
+                                        "nodeType": "UnaryOperation",
+                                        "operator": "++",
+                                        "prefix": false,
+                                        "src": "353:14:0",
+                                        "subExpression": {
+                                            "certora_contract_name": "Snippet3",
+                                            "id": 26,
+                                            "name": "totalPayment",
+                                            "nodeType": "Identifier",
+                                            "overloadedDeclarations": [],
+                                            "referencedDeclaration": 20,
+                                            "src": "353:12:0",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            }
+                                        },
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "id": 28,
+                                    "nodeType": "ExpressionStatement",
+                                    "src": "353:14:0"
+                                },
+                                {
+                                    "certora_contract_name": "Snippet3",
+                                    "expression": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 30,
+                                        "isConstant": false,
+                                        "isLValue": false,
+                                        "isPure": false,
+                                        "lValueRequested": false,
+                                        "nodeType": "UnaryOperation",
+                                        "operator": "++",
+                                        "prefix": false,
+                                        "src": "381:3:0",
+                                        "subExpression": {
+                                            "certora_contract_name": "Snippet3",
+                                            "id": 29,
+                                            "name": "i",
+                                            "nodeType": "Identifier",
+                                            "overloadedDeclarations": [],
+                                            "referencedDeclaration": 16,
+                                            "src": "381:1:0",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            }
+                                        },
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "id": 31,
+                                    "nodeType": "ExpressionStatement",
+                                    "src": "381:3:0"
+                                }
+                            ]
+                        },
+                        "certora_contract_name": "Snippet3",
+                        "condition": {
+                            "certora_contract_name": "Snippet3",
+                            "commonType": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            },
+                            "id": 25,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": false,
+                            "lValueRequested": false,
+                            "leftExpression": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 23,
+                                "name": "i",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 16,
+                                "src": "332:1:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "nodeType": "BinaryOperation",
+                            "operator": "<",
+                            "rightExpression": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 24,
+                                "name": "x",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 10,
+                                "src": "336:1:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "src": "332:5:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_bool",
+                                "typeString": "bool"
+                            }
+                        },
+                        "id": 33,
+                        "nodeType": "WhileStatement",
+                        "src": "325:70:0"
+                    },
+                    {
+                        "certora_contract_name": "Snippet3",
+                        "expression": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 34,
+                            "name": "totalPayment",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 20,
+                            "src": "411:12:0",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            }
+                        },
+                        "functionReturnParameters": 8,
+                        "id": 35,
+                        "nodeType": "Return",
+                        "src": "404:19:0"
+                    }
+                ]
+            },
+            "37": {
+                "body": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 36,
+                    "nodeType": "Block",
+                    "src": "231:199:0",
+                    "statements": [
+                        {
+                            "assignments": [
+                                10
+                            ],
+                            "certora_contract_name": "Snippet3",
+                            "declarations": [
+                                {
+                                    "certora_contract_name": "Snippet3",
+                                    "constant": false,
+                                    "id": 10,
+                                    "mutability": "mutable",
+                                    "name": "x",
+                                    "nameLocation": "249:1:0",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 36,
+                                    "src": "241:9:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    },
+                                    "typeName": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 9,
+                                        "name": "uint256",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "241:7:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                }
+                            ],
+                            "id": 14,
+                            "initialValue": {
+                                "certora_contract_name": "Snippet3",
+                                "commonType": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                },
+                                "id": 13,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "leftExpression": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 11,
+                                    "name": "y",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 2,
+                                    "src": "253:1:0",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    }
+                                },
+                                "nodeType": "BinaryOperation",
+                                "operator": "/",
+                                "rightExpression": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 12,
+                                    "name": "z",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 4,
+                                    "src": "257:1:0",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    }
+                                },
+                                "src": "253:5:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "nodeType": "VariableDeclarationStatement",
+                            "src": "241:17:0"
+                        },
+                        {
+                            "assignments": [
+                                16
+                            ],
+                            "certora_contract_name": "Snippet3",
+                            "declarations": [
+                                {
+                                    "certora_contract_name": "Snippet3",
+                                    "constant": false,
+                                    "id": 16,
+                                    "mutability": "mutable",
+                                    "name": "i",
+                                    "nameLocation": "276:1:0",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 36,
+                                    "src": "268:9:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    },
+                                    "typeName": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 15,
+                                        "name": "uint256",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "268:7:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                }
+                            ],
+                            "id": 18,
+                            "initialValue": {
+                                "certora_contract_name": "Snippet3",
+                                "hexValue": "30",
+                                "id": 17,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": true,
+                                "kind": "number",
+                                "lValueRequested": false,
+                                "nodeType": "Literal",
+                                "src": "280:1:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_rational_0_by_1",
+                                    "typeString": "int_const 0"
+                                },
+                                "value": "0"
+                            },
+                            "nodeType": "VariableDeclarationStatement",
+                            "src": "268:13:0"
+                        },
+                        {
+                            "assignments": [
+                                20
+                            ],
+                            "certora_contract_name": "Snippet3",
+                            "declarations": [
+                                {
+                                    "certora_contract_name": "Snippet3",
+                                    "constant": false,
+                                    "id": 20,
+                                    "mutability": "mutable",
+                                    "name": "totalPayment",
+                                    "nameLocation": "299:12:0",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 36,
+                                    "src": "291:20:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    },
+                                    "typeName": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 19,
+                                        "name": "uint256",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "291:7:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                }
+                            ],
+                            "id": 22,
+                            "initialValue": {
+                                "certora_contract_name": "Snippet3",
+                                "hexValue": "30",
+                                "id": 21,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": true,
+                                "kind": "number",
+                                "lValueRequested": false,
+                                "nodeType": "Literal",
+                                "src": "314:1:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_rational_0_by_1",
+                                    "typeString": "int_const 0"
+                                },
+                                "value": "0"
+                            },
+                            "nodeType": "VariableDeclarationStatement",
+                            "src": "291:24:0"
+                        },
+                        {
+                            "body": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 32,
+                                "nodeType": "Block",
+                                "src": "339:56:0",
+                                "statements": [
+                                    {
+                                        "certora_contract_name": "Snippet3",
+                                        "expression": {
+                                            "certora_contract_name": "Snippet3",
+                                            "id": 27,
+                                            "isConstant": false,
+                                            "isLValue": false,
+                                            "isPure": false,
+                                            "lValueRequested": false,
+                                            "nodeType": "UnaryOperation",
+                                            "operator": "++",
+                                            "prefix": false,
+                                            "src": "353:14:0",
+                                            "subExpression": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 26,
+                                                "name": "totalPayment",
+                                                "nodeType": "Identifier",
+                                                "overloadedDeclarations": [],
+                                                "referencedDeclaration": 20,
+                                                "src": "353:12:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            }
+                                        },
+                                        "id": 28,
+                                        "nodeType": "ExpressionStatement",
+                                        "src": "353:14:0"
+                                    },
+                                    {
+                                        "certora_contract_name": "Snippet3",
+                                        "expression": {
+                                            "certora_contract_name": "Snippet3",
+                                            "id": 30,
+                                            "isConstant": false,
+                                            "isLValue": false,
+                                            "isPure": false,
+                                            "lValueRequested": false,
+                                            "nodeType": "UnaryOperation",
+                                            "operator": "++",
+                                            "prefix": false,
+                                            "src": "381:3:0",
+                                            "subExpression": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 29,
+                                                "name": "i",
+                                                "nodeType": "Identifier",
+                                                "overloadedDeclarations": [],
+                                                "referencedDeclaration": 16,
+                                                "src": "381:1:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            }
+                                        },
+                                        "id": 31,
+                                        "nodeType": "ExpressionStatement",
+                                        "src": "381:3:0"
+                                    }
+                                ]
+                            },
+                            "certora_contract_name": "Snippet3",
+                            "condition": {
+                                "certora_contract_name": "Snippet3",
+                                "commonType": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                },
+                                "id": 25,
+                                "isConstant": false,
+                                "isLValue": false,
+                                "isPure": false,
+                                "lValueRequested": false,
+                                "leftExpression": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 23,
+                                    "name": "i",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 16,
+                                    "src": "332:1:0",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    }
+                                },
+                                "nodeType": "BinaryOperation",
+                                "operator": "<",
+                                "rightExpression": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 24,
+                                    "name": "x",
+                                    "nodeType": "Identifier",
+                                    "overloadedDeclarations": [],
+                                    "referencedDeclaration": 10,
+                                    "src": "336:1:0",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    }
+                                },
+                                "src": "332:5:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_bool",
+                                    "typeString": "bool"
+                                }
+                            },
+                            "id": 33,
+                            "nodeType": "WhileStatement",
+                            "src": "325:70:0"
+                        },
+                        {
+                            "certora_contract_name": "Snippet3",
+                            "expression": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 34,
+                                "name": "totalPayment",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 20,
+                                "src": "411:12:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "functionReturnParameters": 8,
+                            "id": 35,
+                            "nodeType": "Return",
+                            "src": "404:19:0"
+                        }
+                    ]
+                },
+                "certora_contract_name": "Snippet3",
+                "functionSelector": "ef48eee6",
+                "id": 37,
+                "implemented": true,
+                "kind": "function",
+                "modifiers": [],
+                "name": "pay",
+                "nameLocation": "175:3:0",
+                "nodeType": "FunctionDefinition",
+                "parameters": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 5,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                        {
+                            "certora_contract_name": "Snippet3",
+                            "constant": false,
+                            "id": 2,
+                            "mutability": "mutable",
+                            "name": "y",
+                            "nameLocation": "187:1:0",
+                            "nodeType": "VariableDeclaration",
+                            "scope": 37,
+                            "src": "179:9:0",
+                            "stateVariable": false,
+                            "storageLocation": "default",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            },
+                            "typeName": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 1,
+                                "name": "uint256",
+                                "nodeType": "ElementaryTypeName",
+                                "src": "179:7:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "visibility": "internal"
+                        },
+                        {
+                            "certora_contract_name": "Snippet3",
+                            "constant": false,
+                            "id": 4,
+                            "mutability": "mutable",
+                            "name": "z",
+                            "nameLocation": "198:1:0",
+                            "nodeType": "VariableDeclaration",
+                            "scope": 37,
+                            "src": "190:9:0",
+                            "stateVariable": false,
+                            "storageLocation": "default",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            },
+                            "typeName": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 3,
+                                "name": "uint256",
+                                "nodeType": "ElementaryTypeName",
+                                "src": "190:7:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "visibility": "internal"
+                        }
+                    ],
+                    "src": "178:22:0"
+                },
+                "returnParameters": {
+                    "certora_contract_name": "Snippet3",
+                    "id": 8,
+                    "nodeType": "ParameterList",
+                    "parameters": [
+                        {
+                            "certora_contract_name": "Snippet3",
+                            "constant": false,
+                            "id": 7,
+                            "mutability": "mutable",
+                            "name": "",
+                            "nameLocation": "-1:-1:-1",
+                            "nodeType": "VariableDeclaration",
+                            "scope": 37,
+                            "src": "222:7:0",
+                            "stateVariable": false,
+                            "storageLocation": "default",
+                            "typeDescriptions": {
+                                "certora_contract_name": "Snippet3",
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                            },
+                            "typeName": {
+                                "certora_contract_name": "Snippet3",
+                                "id": 6,
+                                "name": "uint256",
+                                "nodeType": "ElementaryTypeName",
+                                "src": "222:7:0",
+                                "typeDescriptions": {
+                                    "certora_contract_name": "Snippet3",
+                                    "typeIdentifier": "t_uint256",
+                                    "typeString": "uint256"
+                                }
+                            },
+                            "visibility": "internal"
+                        }
+                    ],
+                    "src": "221:9:0"
+                },
+                "scope": 38,
+                "src": "166:264:0",
+                "stateMutability": "pure",
+                "virtual": false,
+                "visibility": "public"
+            },
+            "38": {
+                "abstract": false,
+                "baseContracts": [],
+                "canonicalName": "Snippet3",
+                "contractDependencies": [],
+                "contractKind": "contract",
+                "fullyImplemented": true,
+                "id": 38,
+                "linearizedBaseContracts": [
+                    38
+                ],
+                "name": "Snippet3",
+                "nameLocation": "67:8:0",
+                "nodeType": "ContractDefinition",
+                "nodes": [
+                    {
+                        "body": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 36,
+                            "nodeType": "Block",
+                            "src": "231:199:0",
+                            "statements": [
+                                {
+                                    "assignments": [
+                                        10
+                                    ],
+                                    "certora_contract_name": "Snippet3",
+                                    "declarations": [
+                                        {
+                                            "certora_contract_name": "Snippet3",
+                                            "constant": false,
+                                            "id": 10,
+                                            "mutability": "mutable",
+                                            "name": "x",
+                                            "nameLocation": "249:1:0",
+                                            "nodeType": "VariableDeclaration",
+                                            "scope": 36,
+                                            "src": "241:9:0",
+                                            "stateVariable": false,
+                                            "storageLocation": "default",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            },
+                                            "typeName": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 9,
+                                                "name": "uint256",
+                                                "nodeType": "ElementaryTypeName",
+                                                "src": "241:7:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "visibility": "internal"
+                                        }
+                                    ],
+                                    "id": 14,
+                                    "initialValue": {
+                                        "certora_contract_name": "Snippet3",
+                                        "commonType": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        },
+                                        "id": 13,
+                                        "isConstant": false,
+                                        "isLValue": false,
+                                        "isPure": false,
+                                        "lValueRequested": false,
+                                        "leftExpression": {
+                                            "certora_contract_name": "Snippet3",
+                                            "id": 11,
+                                            "name": "y",
+                                            "nodeType": "Identifier",
+                                            "overloadedDeclarations": [],
+                                            "referencedDeclaration": 2,
+                                            "src": "253:1:0",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            }
+                                        },
+                                        "nodeType": "BinaryOperation",
+                                        "operator": "/",
+                                        "rightExpression": {
+                                            "certora_contract_name": "Snippet3",
+                                            "id": 12,
+                                            "name": "z",
+                                            "nodeType": "Identifier",
+                                            "overloadedDeclarations": [],
+                                            "referencedDeclaration": 4,
+                                            "src": "257:1:0",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            }
+                                        },
+                                        "src": "253:5:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "nodeType": "VariableDeclarationStatement",
+                                    "src": "241:17:0"
+                                },
+                                {
+                                    "assignments": [
+                                        16
+                                    ],
+                                    "certora_contract_name": "Snippet3",
+                                    "declarations": [
+                                        {
+                                            "certora_contract_name": "Snippet3",
+                                            "constant": false,
+                                            "id": 16,
+                                            "mutability": "mutable",
+                                            "name": "i",
+                                            "nameLocation": "276:1:0",
+                                            "nodeType": "VariableDeclaration",
+                                            "scope": 36,
+                                            "src": "268:9:0",
+                                            "stateVariable": false,
+                                            "storageLocation": "default",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            },
+                                            "typeName": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 15,
+                                                "name": "uint256",
+                                                "nodeType": "ElementaryTypeName",
+                                                "src": "268:7:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "visibility": "internal"
+                                        }
+                                    ],
+                                    "id": 18,
+                                    "initialValue": {
+                                        "certora_contract_name": "Snippet3",
+                                        "hexValue": "30",
+                                        "id": 17,
+                                        "isConstant": false,
+                                        "isLValue": false,
+                                        "isPure": true,
+                                        "kind": "number",
+                                        "lValueRequested": false,
+                                        "nodeType": "Literal",
+                                        "src": "280:1:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_rational_0_by_1",
+                                            "typeString": "int_const 0"
+                                        },
+                                        "value": "0"
+                                    },
+                                    "nodeType": "VariableDeclarationStatement",
+                                    "src": "268:13:0"
+                                },
+                                {
+                                    "assignments": [
+                                        20
+                                    ],
+                                    "certora_contract_name": "Snippet3",
+                                    "declarations": [
+                                        {
+                                            "certora_contract_name": "Snippet3",
+                                            "constant": false,
+                                            "id": 20,
+                                            "mutability": "mutable",
+                                            "name": "totalPayment",
+                                            "nameLocation": "299:12:0",
+                                            "nodeType": "VariableDeclaration",
+                                            "scope": 36,
+                                            "src": "291:20:0",
+                                            "stateVariable": false,
+                                            "storageLocation": "default",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            },
+                                            "typeName": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 19,
+                                                "name": "uint256",
+                                                "nodeType": "ElementaryTypeName",
+                                                "src": "291:7:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "visibility": "internal"
+                                        }
+                                    ],
+                                    "id": 22,
+                                    "initialValue": {
+                                        "certora_contract_name": "Snippet3",
+                                        "hexValue": "30",
+                                        "id": 21,
+                                        "isConstant": false,
+                                        "isLValue": false,
+                                        "isPure": true,
+                                        "kind": "number",
+                                        "lValueRequested": false,
+                                        "nodeType": "Literal",
+                                        "src": "314:1:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_rational_0_by_1",
+                                            "typeString": "int_const 0"
+                                        },
+                                        "value": "0"
+                                    },
+                                    "nodeType": "VariableDeclarationStatement",
+                                    "src": "291:24:0"
+                                },
+                                {
+                                    "body": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 32,
+                                        "nodeType": "Block",
+                                        "src": "339:56:0",
+                                        "statements": [
+                                            {
+                                                "certora_contract_name": "Snippet3",
+                                                "expression": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "id": 27,
+                                                    "isConstant": false,
+                                                    "isLValue": false,
+                                                    "isPure": false,
+                                                    "lValueRequested": false,
+                                                    "nodeType": "UnaryOperation",
+                                                    "operator": "++",
+                                                    "prefix": false,
+                                                    "src": "353:14:0",
+                                                    "subExpression": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "id": 26,
+                                                        "name": "totalPayment",
+                                                        "nodeType": "Identifier",
+                                                        "overloadedDeclarations": [],
+                                                        "referencedDeclaration": 20,
+                                                        "src": "353:12:0",
+                                                        "typeDescriptions": {
+                                                            "certora_contract_name": "Snippet3",
+                                                            "typeIdentifier": "t_uint256",
+                                                            "typeString": "uint256"
+                                                        }
+                                                    },
+                                                    "typeDescriptions": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "typeIdentifier": "t_uint256",
+                                                        "typeString": "uint256"
+                                                    }
+                                                },
+                                                "id": 28,
+                                                "nodeType": "ExpressionStatement",
+                                                "src": "353:14:0"
+                                            },
+                                            {
+                                                "certora_contract_name": "Snippet3",
+                                                "expression": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "id": 30,
+                                                    "isConstant": false,
+                                                    "isLValue": false,
+                                                    "isPure": false,
+                                                    "lValueRequested": false,
+                                                    "nodeType": "UnaryOperation",
+                                                    "operator": "++",
+                                                    "prefix": false,
+                                                    "src": "381:3:0",
+                                                    "subExpression": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "id": 29,
+                                                        "name": "i",
+                                                        "nodeType": "Identifier",
+                                                        "overloadedDeclarations": [],
+                                                        "referencedDeclaration": 16,
+                                                        "src": "381:1:0",
+                                                        "typeDescriptions": {
+                                                            "certora_contract_name": "Snippet3",
+                                                            "typeIdentifier": "t_uint256",
+                                                            "typeString": "uint256"
+                                                        }
+                                                    },
+                                                    "typeDescriptions": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "typeIdentifier": "t_uint256",
+                                                        "typeString": "uint256"
+                                                    }
+                                                },
+                                                "id": 31,
+                                                "nodeType": "ExpressionStatement",
+                                                "src": "381:3:0"
+                                            }
+                                        ]
+                                    },
+                                    "certora_contract_name": "Snippet3",
+                                    "condition": {
+                                        "certora_contract_name": "Snippet3",
+                                        "commonType": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        },
+                                        "id": 25,
+                                        "isConstant": false,
+                                        "isLValue": false,
+                                        "isPure": false,
+                                        "lValueRequested": false,
+                                        "leftExpression": {
+                                            "certora_contract_name": "Snippet3",
+                                            "id": 23,
+                                            "name": "i",
+                                            "nodeType": "Identifier",
+                                            "overloadedDeclarations": [],
+                                            "referencedDeclaration": 16,
+                                            "src": "332:1:0",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            }
+                                        },
+                                        "nodeType": "BinaryOperation",
+                                        "operator": "<",
+                                        "rightExpression": {
+                                            "certora_contract_name": "Snippet3",
+                                            "id": 24,
+                                            "name": "x",
+                                            "nodeType": "Identifier",
+                                            "overloadedDeclarations": [],
+                                            "referencedDeclaration": 10,
+                                            "src": "336:1:0",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            }
+                                        },
+                                        "src": "332:5:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_bool",
+                                            "typeString": "bool"
+                                        }
+                                    },
+                                    "id": 33,
+                                    "nodeType": "WhileStatement",
+                                    "src": "325:70:0"
+                                },
+                                {
+                                    "certora_contract_name": "Snippet3",
+                                    "expression": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 34,
+                                        "name": "totalPayment",
+                                        "nodeType": "Identifier",
+                                        "overloadedDeclarations": [],
+                                        "referencedDeclaration": 20,
+                                        "src": "411:12:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "functionReturnParameters": 8,
+                                    "id": 35,
+                                    "nodeType": "Return",
+                                    "src": "404:19:0"
+                                }
+                            ]
+                        },
+                        "certora_contract_name": "Snippet3",
+                        "functionSelector": "ef48eee6",
+                        "id": 37,
+                        "implemented": true,
+                        "kind": "function",
+                        "modifiers": [],
+                        "name": "pay",
+                        "nameLocation": "175:3:0",
+                        "nodeType": "FunctionDefinition",
+                        "parameters": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 5,
+                            "nodeType": "ParameterList",
+                            "parameters": [
+                                {
+                                    "certora_contract_name": "Snippet3",
+                                    "constant": false,
+                                    "id": 2,
+                                    "mutability": "mutable",
+                                    "name": "y",
+                                    "nameLocation": "187:1:0",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 37,
+                                    "src": "179:9:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    },
+                                    "typeName": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 1,
+                                        "name": "uint256",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "179:7:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                },
+                                {
+                                    "certora_contract_name": "Snippet3",
+                                    "constant": false,
+                                    "id": 4,
+                                    "mutability": "mutable",
+                                    "name": "z",
+                                    "nameLocation": "198:1:0",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 37,
+                                    "src": "190:9:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    },
+                                    "typeName": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 3,
+                                        "name": "uint256",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "190:7:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                }
+                            ],
+                            "src": "178:22:0"
+                        },
+                        "returnParameters": {
+                            "certora_contract_name": "Snippet3",
+                            "id": 8,
+                            "nodeType": "ParameterList",
+                            "parameters": [
+                                {
+                                    "certora_contract_name": "Snippet3",
+                                    "constant": false,
+                                    "id": 7,
+                                    "mutability": "mutable",
+                                    "name": "",
+                                    "nameLocation": "-1:-1:-1",
+                                    "nodeType": "VariableDeclaration",
+                                    "scope": 37,
+                                    "src": "222:7:0",
+                                    "stateVariable": false,
+                                    "storageLocation": "default",
+                                    "typeDescriptions": {
+                                        "certora_contract_name": "Snippet3",
+                                        "typeIdentifier": "t_uint256",
+                                        "typeString": "uint256"
+                                    },
+                                    "typeName": {
+                                        "certora_contract_name": "Snippet3",
+                                        "id": 6,
+                                        "name": "uint256",
+                                        "nodeType": "ElementaryTypeName",
+                                        "src": "222:7:0",
+                                        "typeDescriptions": {
+                                            "certora_contract_name": "Snippet3",
+                                            "typeIdentifier": "t_uint256",
+                                            "typeString": "uint256"
+                                        }
+                                    },
+                                    "visibility": "internal"
+                                }
+                            ],
+                            "src": "221:9:0"
+                        },
+                        "scope": 38,
+                        "src": "166:264:0",
+                        "stateMutability": "pure",
+                        "virtual": false,
+                        "visibility": "public"
+                    }
+                ],
+                "scope": 39,
+                "src": "58:374:0",
+                "usedErrors": [],
+                "usedEvents": []
+            },
+            "39": {
+                "absolutePath": "/Users/chandrakananandi/research/wala-solidity/test/data/Snippet3/Snippet3.sol",
+                "exportedSymbols": {
+                    "Snippet3": [
+                        38
+                    ]
+                },
+                "id": 39,
+                "license": "MIT",
+                "nodeType": "SourceUnit",
+                "nodes": [
+                    {
+                        "abstract": false,
+                        "baseContracts": [],
+                        "canonicalName": "Snippet3",
+                        "contractDependencies": [],
+                        "contractKind": "contract",
+                        "fullyImplemented": true,
+                        "id": 38,
+                        "linearizedBaseContracts": [
+                            38
+                        ],
+                        "name": "Snippet3",
+                        "nameLocation": "67:8:0",
+                        "nodeType": "ContractDefinition",
+                        "nodes": [
+                            {
+                                "body": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 36,
+                                    "nodeType": "Block",
+                                    "src": "231:199:0",
+                                    "statements": [
+                                        {
+                                            "assignments": [
+                                                10
+                                            ],
+                                            "certora_contract_name": "Snippet3",
+                                            "declarations": [
+                                                {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "constant": false,
+                                                    "id": 10,
+                                                    "mutability": "mutable",
+                                                    "name": "x",
+                                                    "nameLocation": "249:1:0",
+                                                    "nodeType": "VariableDeclaration",
+                                                    "scope": 36,
+                                                    "src": "241:9:0",
+                                                    "stateVariable": false,
+                                                    "storageLocation": "default",
+                                                    "typeDescriptions": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "typeIdentifier": "t_uint256",
+                                                        "typeString": "uint256"
+                                                    },
+                                                    "typeName": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "id": 9,
+                                                        "name": "uint256",
+                                                        "nodeType": "ElementaryTypeName",
+                                                        "src": "241:7:0",
+                                                        "typeDescriptions": {
+                                                            "certora_contract_name": "Snippet3",
+                                                            "typeIdentifier": "t_uint256",
+                                                            "typeString": "uint256"
+                                                        }
+                                                    },
+                                                    "visibility": "internal"
+                                                }
+                                            ],
+                                            "id": 14,
+                                            "initialValue": {
+                                                "certora_contract_name": "Snippet3",
+                                                "commonType": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                },
+                                                "id": 13,
+                                                "isConstant": false,
+                                                "isLValue": false,
+                                                "isPure": false,
+                                                "lValueRequested": false,
+                                                "leftExpression": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "id": 11,
+                                                    "name": "y",
+                                                    "nodeType": "Identifier",
+                                                    "overloadedDeclarations": [],
+                                                    "referencedDeclaration": 2,
+                                                    "src": "253:1:0",
+                                                    "typeDescriptions": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "typeIdentifier": "t_uint256",
+                                                        "typeString": "uint256"
+                                                    }
+                                                },
+                                                "nodeType": "BinaryOperation",
+                                                "operator": "/",
+                                                "rightExpression": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "id": 12,
+                                                    "name": "z",
+                                                    "nodeType": "Identifier",
+                                                    "overloadedDeclarations": [],
+                                                    "referencedDeclaration": 4,
+                                                    "src": "257:1:0",
+                                                    "typeDescriptions": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "typeIdentifier": "t_uint256",
+                                                        "typeString": "uint256"
+                                                    }
+                                                },
+                                                "src": "253:5:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "nodeType": "VariableDeclarationStatement",
+                                            "src": "241:17:0"
+                                        },
+                                        {
+                                            "assignments": [
+                                                16
+                                            ],
+                                            "certora_contract_name": "Snippet3",
+                                            "declarations": [
+                                                {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "constant": false,
+                                                    "id": 16,
+                                                    "mutability": "mutable",
+                                                    "name": "i",
+                                                    "nameLocation": "276:1:0",
+                                                    "nodeType": "VariableDeclaration",
+                                                    "scope": 36,
+                                                    "src": "268:9:0",
+                                                    "stateVariable": false,
+                                                    "storageLocation": "default",
+                                                    "typeDescriptions": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "typeIdentifier": "t_uint256",
+                                                        "typeString": "uint256"
+                                                    },
+                                                    "typeName": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "id": 15,
+                                                        "name": "uint256",
+                                                        "nodeType": "ElementaryTypeName",
+                                                        "src": "268:7:0",
+                                                        "typeDescriptions": {
+                                                            "certora_contract_name": "Snippet3",
+                                                            "typeIdentifier": "t_uint256",
+                                                            "typeString": "uint256"
+                                                        }
+                                                    },
+                                                    "visibility": "internal"
+                                                }
+                                            ],
+                                            "id": 18,
+                                            "initialValue": {
+                                                "certora_contract_name": "Snippet3",
+                                                "hexValue": "30",
+                                                "id": 17,
+                                                "isConstant": false,
+                                                "isLValue": false,
+                                                "isPure": true,
+                                                "kind": "number",
+                                                "lValueRequested": false,
+                                                "nodeType": "Literal",
+                                                "src": "280:1:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_rational_0_by_1",
+                                                    "typeString": "int_const 0"
+                                                },
+                                                "value": "0"
+                                            },
+                                            "nodeType": "VariableDeclarationStatement",
+                                            "src": "268:13:0"
+                                        },
+                                        {
+                                            "assignments": [
+                                                20
+                                            ],
+                                            "certora_contract_name": "Snippet3",
+                                            "declarations": [
+                                                {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "constant": false,
+                                                    "id": 20,
+                                                    "mutability": "mutable",
+                                                    "name": "totalPayment",
+                                                    "nameLocation": "299:12:0",
+                                                    "nodeType": "VariableDeclaration",
+                                                    "scope": 36,
+                                                    "src": "291:20:0",
+                                                    "stateVariable": false,
+                                                    "storageLocation": "default",
+                                                    "typeDescriptions": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "typeIdentifier": "t_uint256",
+                                                        "typeString": "uint256"
+                                                    },
+                                                    "typeName": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "id": 19,
+                                                        "name": "uint256",
+                                                        "nodeType": "ElementaryTypeName",
+                                                        "src": "291:7:0",
+                                                        "typeDescriptions": {
+                                                            "certora_contract_name": "Snippet3",
+                                                            "typeIdentifier": "t_uint256",
+                                                            "typeString": "uint256"
+                                                        }
+                                                    },
+                                                    "visibility": "internal"
+                                                }
+                                            ],
+                                            "id": 22,
+                                            "initialValue": {
+                                                "certora_contract_name": "Snippet3",
+                                                "hexValue": "30",
+                                                "id": 21,
+                                                "isConstant": false,
+                                                "isLValue": false,
+                                                "isPure": true,
+                                                "kind": "number",
+                                                "lValueRequested": false,
+                                                "nodeType": "Literal",
+                                                "src": "314:1:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_rational_0_by_1",
+                                                    "typeString": "int_const 0"
+                                                },
+                                                "value": "0"
+                                            },
+                                            "nodeType": "VariableDeclarationStatement",
+                                            "src": "291:24:0"
+                                        },
+                                        {
+                                            "body": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 32,
+                                                "nodeType": "Block",
+                                                "src": "339:56:0",
+                                                "statements": [
+                                                    {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "expression": {
+                                                            "certora_contract_name": "Snippet3",
+                                                            "id": 27,
+                                                            "isConstant": false,
+                                                            "isLValue": false,
+                                                            "isPure": false,
+                                                            "lValueRequested": false,
+                                                            "nodeType": "UnaryOperation",
+                                                            "operator": "++",
+                                                            "prefix": false,
+                                                            "src": "353:14:0",
+                                                            "subExpression": {
+                                                                "certora_contract_name": "Snippet3",
+                                                                "id": 26,
+                                                                "name": "totalPayment",
+                                                                "nodeType": "Identifier",
+                                                                "overloadedDeclarations": [],
+                                                                "referencedDeclaration": 20,
+                                                                "src": "353:12:0",
+                                                                "typeDescriptions": {
+                                                                    "certora_contract_name": "Snippet3",
+                                                                    "typeIdentifier": "t_uint256",
+                                                                    "typeString": "uint256"
+                                                                }
+                                                            },
+                                                            "typeDescriptions": {
+                                                                "certora_contract_name": "Snippet3",
+                                                                "typeIdentifier": "t_uint256",
+                                                                "typeString": "uint256"
+                                                            }
+                                                        },
+                                                        "id": 28,
+                                                        "nodeType": "ExpressionStatement",
+                                                        "src": "353:14:0"
+                                                    },
+                                                    {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "expression": {
+                                                            "certora_contract_name": "Snippet3",
+                                                            "id": 30,
+                                                            "isConstant": false,
+                                                            "isLValue": false,
+                                                            "isPure": false,
+                                                            "lValueRequested": false,
+                                                            "nodeType": "UnaryOperation",
+                                                            "operator": "++",
+                                                            "prefix": false,
+                                                            "src": "381:3:0",
+                                                            "subExpression": {
+                                                                "certora_contract_name": "Snippet3",
+                                                                "id": 29,
+                                                                "name": "i",
+                                                                "nodeType": "Identifier",
+                                                                "overloadedDeclarations": [],
+                                                                "referencedDeclaration": 16,
+                                                                "src": "381:1:0",
+                                                                "typeDescriptions": {
+                                                                    "certora_contract_name": "Snippet3",
+                                                                    "typeIdentifier": "t_uint256",
+                                                                    "typeString": "uint256"
+                                                                }
+                                                            },
+                                                            "typeDescriptions": {
+                                                                "certora_contract_name": "Snippet3",
+                                                                "typeIdentifier": "t_uint256",
+                                                                "typeString": "uint256"
+                                                            }
+                                                        },
+                                                        "id": 31,
+                                                        "nodeType": "ExpressionStatement",
+                                                        "src": "381:3:0"
+                                                    }
+                                                ]
+                                            },
+                                            "certora_contract_name": "Snippet3",
+                                            "condition": {
+                                                "certora_contract_name": "Snippet3",
+                                                "commonType": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                },
+                                                "id": 25,
+                                                "isConstant": false,
+                                                "isLValue": false,
+                                                "isPure": false,
+                                                "lValueRequested": false,
+                                                "leftExpression": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "id": 23,
+                                                    "name": "i",
+                                                    "nodeType": "Identifier",
+                                                    "overloadedDeclarations": [],
+                                                    "referencedDeclaration": 16,
+                                                    "src": "332:1:0",
+                                                    "typeDescriptions": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "typeIdentifier": "t_uint256",
+                                                        "typeString": "uint256"
+                                                    }
+                                                },
+                                                "nodeType": "BinaryOperation",
+                                                "operator": "<",
+                                                "rightExpression": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "id": 24,
+                                                    "name": "x",
+                                                    "nodeType": "Identifier",
+                                                    "overloadedDeclarations": [],
+                                                    "referencedDeclaration": 10,
+                                                    "src": "336:1:0",
+                                                    "typeDescriptions": {
+                                                        "certora_contract_name": "Snippet3",
+                                                        "typeIdentifier": "t_uint256",
+                                                        "typeString": "uint256"
+                                                    }
+                                                },
+                                                "src": "332:5:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_bool",
+                                                    "typeString": "bool"
+                                                }
+                                            },
+                                            "id": 33,
+                                            "nodeType": "WhileStatement",
+                                            "src": "325:70:0"
+                                        },
+                                        {
+                                            "certora_contract_name": "Snippet3",
+                                            "expression": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 34,
+                                                "name": "totalPayment",
+                                                "nodeType": "Identifier",
+                                                "overloadedDeclarations": [],
+                                                "referencedDeclaration": 20,
+                                                "src": "411:12:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "functionReturnParameters": 8,
+                                            "id": 35,
+                                            "nodeType": "Return",
+                                            "src": "404:19:0"
+                                        }
+                                    ]
+                                },
+                                "certora_contract_name": "Snippet3",
+                                "functionSelector": "ef48eee6",
+                                "id": 37,
+                                "implemented": true,
+                                "kind": "function",
+                                "modifiers": [],
+                                "name": "pay",
+                                "nameLocation": "175:3:0",
+                                "nodeType": "FunctionDefinition",
+                                "parameters": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 5,
+                                    "nodeType": "ParameterList",
+                                    "parameters": [
+                                        {
+                                            "certora_contract_name": "Snippet3",
+                                            "constant": false,
+                                            "id": 2,
+                                            "mutability": "mutable",
+                                            "name": "y",
+                                            "nameLocation": "187:1:0",
+                                            "nodeType": "VariableDeclaration",
+                                            "scope": 37,
+                                            "src": "179:9:0",
+                                            "stateVariable": false,
+                                            "storageLocation": "default",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            },
+                                            "typeName": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 1,
+                                                "name": "uint256",
+                                                "nodeType": "ElementaryTypeName",
+                                                "src": "179:7:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "visibility": "internal"
+                                        },
+                                        {
+                                            "certora_contract_name": "Snippet3",
+                                            "constant": false,
+                                            "id": 4,
+                                            "mutability": "mutable",
+                                            "name": "z",
+                                            "nameLocation": "198:1:0",
+                                            "nodeType": "VariableDeclaration",
+                                            "scope": 37,
+                                            "src": "190:9:0",
+                                            "stateVariable": false,
+                                            "storageLocation": "default",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            },
+                                            "typeName": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 3,
+                                                "name": "uint256",
+                                                "nodeType": "ElementaryTypeName",
+                                                "src": "190:7:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "visibility": "internal"
+                                        }
+                                    ],
+                                    "src": "178:22:0"
+                                },
+                                "returnParameters": {
+                                    "certora_contract_name": "Snippet3",
+                                    "id": 8,
+                                    "nodeType": "ParameterList",
+                                    "parameters": [
+                                        {
+                                            "certora_contract_name": "Snippet3",
+                                            "constant": false,
+                                            "id": 7,
+                                            "mutability": "mutable",
+                                            "name": "",
+                                            "nameLocation": "-1:-1:-1",
+                                            "nodeType": "VariableDeclaration",
+                                            "scope": 37,
+                                            "src": "222:7:0",
+                                            "stateVariable": false,
+                                            "storageLocation": "default",
+                                            "typeDescriptions": {
+                                                "certora_contract_name": "Snippet3",
+                                                "typeIdentifier": "t_uint256",
+                                                "typeString": "uint256"
+                                            },
+                                            "typeName": {
+                                                "certora_contract_name": "Snippet3",
+                                                "id": 6,
+                                                "name": "uint256",
+                                                "nodeType": "ElementaryTypeName",
+                                                "src": "222:7:0",
+                                                "typeDescriptions": {
+                                                    "certora_contract_name": "Snippet3",
+                                                    "typeIdentifier": "t_uint256",
+                                                    "typeString": "uint256"
+                                                }
+                                            },
+                                            "visibility": "internal"
+                                        }
+                                    ],
+                                    "src": "221:9:0"
+                                },
+                                "scope": 38,
+                                "src": "166:264:0",
+                                "stateMutability": "pure",
+                                "virtual": false,
+                                "visibility": "public"
+                            }
+                        ],
+                        "scope": 39,
+                        "src": "58:374:0",
+                        "usedErrors": [],
+                        "usedEvents": []
+                    }
+                ],
+                "src": "58:375:0"
+            }
+        }
+    }
+}
