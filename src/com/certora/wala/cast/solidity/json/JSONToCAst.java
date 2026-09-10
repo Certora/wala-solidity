@@ -1667,7 +1667,32 @@ public class JSONToCAst {
 				
 				return result;
 			}
-			
+
+			/**
+			 * {@code do B while (C)} has no CAst loop form (LOOP is test-first), so it is lowered with
+			 * WALA's {@link TranslatorToCAst.DoLoopTranslator} in replicating mode, as the Java front end
+			 * does: {@code B; while (C) B'} with B' a clone of B. Peeling the first iteration keeps the
+			 * loop a test-first LOOP, which is the shape the downstream loop analyses expect. The
+			 * continue and break labels are bound before cloning so that jumps in the clone resolve to
+			 * the clone's continue label and the shared break label.
+			 */
+			@SuppressWarnings("unused")
+			public CAstNode visitDoWhileStatement(JSONObject o, SolidityWalkContext context) {
+				JSONObject contLabel = JSONObject.fromJson("{\"nodeType\": \"Continue\"}", JSONObject.class);
+				JSONObject breakLabel = JSONObject.fromJson("{\"nodeType\": \"Break\"}", JSONObject.class);
+				SolidityLoopContext lc = new SolidityLoopContext(context, breakLabel, contLabel);
+				CAstNode body = visit(o.getJSONObject("body"), lc);
+				CAstNode test = visit(o.getJSONObject("condition"), context);
+
+				CAstNode cs = ast.makeNode(CAstNode.LABEL_STMT, ast.makeConstant("cont" + idx++), ast.makeNode(CAstNode.EMPTY));
+				context.cfg().map(contLabel, cs);
+				CAstNode bs = ast.makeNode(CAstNode.LABEL_STMT, ast.makeConstant("break" + idx++), ast.makeNode(CAstNode.EMPTY));
+				context.cfg().map(breakLabel, bs);
+
+				return record(new TranslatorToCAst.DoLoopTranslator(true, ast).translateDoLoop(test, body, cs, bs, context),
+						getLocation(o.getString("src")), context);
+			}
+
 			@SuppressWarnings("unused")
 			public CAstNode visitInlineAssembly(JSONObject o, SolidityWalkContext context) {
 				JSONObject yulAst = o.getJSONObject("AST");
