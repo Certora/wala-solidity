@@ -27,13 +27,12 @@ public interface AbstractTestForcedRounding extends CheckResult {
 		result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function forcedDown>' && @.return == 'Up')]");
 		assert result.isEmpty();
 
-		// forcedUp computes x / 1 followed by a copy (y + 0), so it also rounds Down: an addition
-		// after a division is not a ceiling idiom
-		result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function forcedUp>' && @.return == 'Down')]");
+		// forcedUp should round Up
+		result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function forcedUp>' && @.return == 'Up')]");
 		assert !result.isEmpty();
 
-		// forcedUp should NOT round Up
-		result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function forcedUp>' && @.return == 'Up')]");
+		// forcedUp should NOT round Down
+		result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function forcedUp>' && @.return == 'Down')]");
 		assert result.isEmpty();
 	}
 }
