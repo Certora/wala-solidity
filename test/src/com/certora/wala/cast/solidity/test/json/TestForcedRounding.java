@@ -25,10 +25,11 @@ public class TestForcedRounding extends AbstractJsonTest implements AbstractTest
 	}
 
 	/**
-	 * Both functions compute {@code x / 1}, which is exact, so both are Neither. {@code forcedUp}'s
+	 * {@code forcedDown} and {@code forcedUp} compute {@code x / 1}, which is exact, so both are Neither. {@code forcedUp}'s
 	 * trailing {@code y = y + 0} adds the same value to the integer and the real run, so it cannot
 	 * make the result round up; it was once reported Up by a heuristic that read any addition after
 	 * a division as a round-up correction, which is unsound ({@code x / 3 + 5} rounds down).
+	 * {@code roundedDown} ({@code x / 3}) is the contrast that does round.
 	 */
 	@Override
 	public void checkResult(DocumentContext jsonParser) {
@@ -41,6 +42,11 @@ public class TestForcedRounding extends AbstractJsonTest implements AbstractTest
 			System.err.println(result);
 			assert result.isEmpty() : fn + " should only be exact";
 		}
+
+		// the contrast: x / 3 does round, down
+		JSONArray result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function roundedDown>')].return");
+		System.err.println(result);
+		assert !result.isEmpty() && result.toList().stream().allMatch("Down"::equals) : "roundedDown should round Down, got " + result;
 	}
 
 }

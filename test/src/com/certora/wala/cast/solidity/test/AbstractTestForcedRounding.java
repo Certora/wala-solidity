@@ -28,5 +28,9 @@ public interface AbstractTestForcedRounding extends CheckResult {
 			result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function " + fn + ">' && @.return != 'Neither')]");
 			assert result.isEmpty();
 		}
+
+		// roundedDown computes x / 3, which rounds down
+		JSONArray result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function roundedDown>' && @.return == 'Down')]");
+		assert !result.isEmpty();
 	}
 }
