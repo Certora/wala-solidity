@@ -1111,6 +1111,10 @@ public class JSONToCAst {
 
 			@SuppressWarnings("unused")
 			public CAstNode visitFunctionCall(JSONObject o, SolidityWalkContext context) {
+				CAstNode modular = modularBuiltin(o, context);
+				if (modular != null) {
+					return modular;
+				}
 				CAstNode fun = visit(o.getJSONObject("expression"), context);
 				if (fun == null) {
 					visit(o.getJSONObject("expression"), context);
@@ -1118,7 +1122,36 @@ public class JSONToCAst {
 				CAstNode[] args = Streams.concat(Streams.stream(Optional.of(ast.makeNode(CAstNode.EMPTY))), Streams.stream(o.getJSONArray("arguments").iterator()).map(v -> (JSONObject)v).map(v -> visit(v, context))).toArray(i -> new CAstNode[i]);
 				return record(ast.makeNode(CAstNode.CALL, fun, args), getLocation(o.getString("src")), getType(o, context), context);
 			}
-			
+
+			/**
+			 * The builtins {@code mulmod(a, b, m)} and {@code addmod(a, b, m)} as {@code (a * b) % m}
+			 * and {@code (a + b) % m}, the same lowering the Yul builtins get, so a remainder reads
+			 * the same whichever syntax computes it. Returns null for any other call.
+			 */
+			private CAstNode modularBuiltin(JSONObject o, SolidityWalkContext context) {
+				JSONObject callee = o.getJSONObject("expression");
+				if (!"Identifier".equals(callee.getString("nodeType")) || callee.optInt("referencedDeclaration", 0) >= 0) {
+					return null;
+				}
+				CAstOperator combine;
+				switch (callee.getString("name")) {
+				case "mulmod":
+					combine = CAstOperator.OP_MUL;
+					break;
+				case "addmod":
+					combine = CAstOperator.OP_ADD;
+					break;
+				default:
+					return null;
+				}
+				JSONArray args = o.getJSONArray("arguments");
+				CAstNode a = visit(args.getJSONObject(0), context);
+				CAstNode b = visit(args.getJSONObject(1), context);
+				CAstNode m = visit(args.getJSONObject(2), context);
+				return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MOD, ast.makeNode(CAstNode.BINARY_EXPR, combine, a, b), m),
+						getLocation(o.getString("src")), getType(o, context), context);
+			}
+
 			@SuppressWarnings("unused")
 			public CAstNode visitFunctionCallOptions(JSONObject o, SolidityWalkContext context) {
 				return visit(o.getJSONObject("expression"), context);

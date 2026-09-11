@@ -14,10 +14,13 @@ package com.certora.wala.analysis.rounding;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -115,7 +118,18 @@ public class RoundingAnalysis {
 	RoundingRecognition getRecognition(CGNode n) {
 		RoundingRecognition r = recognitionCache.get(n);
 		if (r == null) {
-			r = new RoundingRecognition(n.getIR());
+			r = new RoundingRecognition(n.getIR(), new RoundingRecognition.Calls() {
+				@Override
+				public Collection<IR> targets(SSAAbstractInvokeInstruction call) {
+					return CG.getPossibleTargets(n, call.getCallSite()).stream()
+						.map(CGNode::getIR).filter(Objects::nonNull).collect(Collectors.toList());
+				}
+
+				@Override
+				public boolean isFloorQuotient(SSAAbstractInvokeInstruction call) {
+					return S.isDivOp(call.getCallSite().getDeclaredTarget().getDeclaringClass().getName().toString());
+				}
+			});
 			recognitionCache.put(n, r);
 		}
 		return r;
@@ -682,45 +696,48 @@ public class RoundingAnalysis {
 			}
 		};
 
-		/** A ceiling idiom recognized by Phase 1: divUp(dividend, divisor). */
-		private class RoundUpIdiomOperator extends AbstractOperator<RoundingVariable> {
-			private final int dividend;
-			private final int divisor;
+		/**
+		 * A value Phase 1 recognized as computing {@code ceil(N / D)} (a
+		 * {@link RoundingRecognition.Ceiling}): divUp(N, D), which rounds Up, combined with the
+		 * directions of N's factors and the flipped direction of D.
+		 */
+		private class CeilingOperator extends AbstractOperator<RoundingVariable> {
+			private final RoundingRecognition.Ceiling ceiling;
 
-			RoundUpIdiomOperator(int dividend, int divisor) {
-				this.dividend = dividend;
-				this.divisor = divisor;
+			CeilingOperator(RoundingRecognition.Ceiling ceiling) {
+				this.ceiling = ceiling;
 			}
 
-			// rhs = [dividend, divisor] (injected in injectDivergenceEquations).
+			// rhs = [dividend factors..., divisor] (injected in injectDivergenceEquations).
 			@Override
 			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
-				Direction dd = rhs[0].state;
-				Direction dv = rhs[1].state;
-				if (dd != null && dv != null) {
-					Direction d = Direction.Up.combine(dd).combine(dv.flip());
-					if (d != lhs.state) {
-						lhs.state = d;
-						return CHANGED;
+				Direction d = Direction.Up;
+				for (int i = 0; i < rhs.length; i++) {
+					if (rhs[i].state == null) {
+						return NOT_CHANGED;
 					}
+					d = d.combine(i == rhs.length - 1 ? rhs[i].state.flip() : rhs[i].state);
+				}
+				if (d != lhs.state) {
+					lhs.state = d;
+					return CHANGED;
 				}
 				return NOT_CHANGED;
 			}
 
 			@Override
 			public int hashCode() {
-				return 41 * dividend + divisor;
+				return System.identityHashCode(ceiling);
 			}
 
 			@Override
 			public boolean equals(Object o) {
-				return o instanceof RoundUpIdiomOperator && ((RoundUpIdiomOperator) o).dividend == dividend
-						&& ((RoundUpIdiomOperator) o).divisor == divisor;
+				return o instanceof CeilingOperator && ((CeilingOperator) o).ceiling == ceiling;
 			}
 
 			@Override
 			public String toString() {
-				return "round-up idiom divUp(" + dividend + ", " + divisor + ")";
+				return "ceiling divUp(" + Arrays.toString(ceiling.dividendFactors) + ", " + ceiling.divisorVN + ")";
 			}
 		}
 
@@ -962,6 +979,26 @@ public class RoundingAnalysis {
 			});
 		}
 		
+		/**
+		 * The ceiling the definition of {@code vn} computes in this context: Phase 1's, provided every
+		 * phi operand it needs to be infeasible is dead here; otherwise null (the ordinary equation
+		 * applies).
+		 */
+		private RoundingRecognition.Ceiling activeCeiling(int vn) {
+			RoundingRecognition.Ceiling c = recognition.ceiling(vn);
+			if (c == null) {
+				return null;
+			}
+			for (int[] dead : c.deadPhiOperands) {
+				SSAPhiInstruction phi = (SSAPhiInstruction) du.getDef(dead[0]);
+				MutableIntSet rvals = deadPhiRvals.get(phi);
+				if (rvals == null || !rvals.contains(phi.getUse(dead[1]))) {
+					return null;
+				}
+			}
+			return c;
+		}
+
 		private RoundingSummary.Value getSummaryIfAny(SSAAbstractInvokeInstruction callInst) {
 			List<Direction> args = new ArrayList<>(callInst.getNumberOfUses());
 			for (int i = 0; i < callInst.getNumberOfUses(); i++) {
@@ -1063,6 +1100,10 @@ public class RoundingAnalysis {
 
 				@Override
 				public void visitBinaryOp(SSABinaryOpInstruction instruction) {
+					if (activeCeiling(instruction.getDef()) != null) {
+						result = null; // reads the dividend and divisor: injected after init()
+						return;
+					}
 					IBinaryOpInstruction.IOperator op = instruction.getOperator();
 					if (op == IBinaryOpInstruction.Operator.ADD) {
 						result = new BinaryOperator(false, Direction.Neither);
@@ -1103,7 +1144,7 @@ public class RoundingAnalysis {
 				public void visitPhi(SSAPhiInstruction instruction) {
 					// Every recognized idiom/divergence phi reads variables beyond its SSA uses
 					// (division operands, guard, bound), so its equation is injected after init().
-					if (recognition.roundUpIdiomOperands(instruction) != null
+					if (activeCeiling(instruction.getDef()) != null
 							|| recognition.guardedMerge(instruction) != null || recognition.loopInduction(instruction) != null
 							|| recognition.branchFloor(instruction) != null) {
 						result = null;
@@ -1292,14 +1333,14 @@ public class RoundingAnalysis {
 		 * settle. We register their equations explicitly with the read variables as operands.
 		 */
 		private void injectDivergenceEquations(IR ir) {
+			ir.iterateNormalInstructions().forEachRemaining(inst -> {
+				if (inst instanceof SSABinaryOpInstruction) {
+					injectCeiling(inst.getDef());
+				}
+			});
 			ir.iteratePhis().forEachRemaining(inst -> {
 				SSAPhiInstruction phi = (SSAPhiInstruction) inst;
-				int[] ceil = recognition.roundUpIdiomOperands(phi);
-				if (ceil != null) {
-					RoundingVariable[] rhs = makeStmtRHS(2);
-					rhs[0] = getVariable(ceil[0]);
-					rhs[1] = getVariable(ceil[1]);
-					newStatement(getVariable(phi.getDef()), new RoundUpIdiomOperator(ceil[0], ceil[1]), rhs, false, false);
+				if (injectCeiling(phi.getDef())) {
 					return;
 				}
 				RoundingRecognition.GuardedMerge gm = recognition.guardedMerge(phi);
@@ -1335,6 +1376,21 @@ public class RoundingAnalysis {
 					newStatement(getVariable(phi.getDef()), new BranchFloorOperator(bf), rhs, false, false);
 				}
 			});
+		}
+
+		/** Registers the divUp equation for a value that computes a ceiling here; false if it does not. */
+		private boolean injectCeiling(int vn) {
+			RoundingRecognition.Ceiling c = activeCeiling(vn);
+			if (c == null) {
+				return false;
+			}
+			RoundingVariable[] rhs = makeStmtRHS(c.dividendFactors.length + 1);
+			for (int i = 0; i < c.dividendFactors.length; i++) {
+				rhs[i] = getVariable(c.dividendFactors[i]);
+			}
+			rhs[c.dividendFactors.length] = getVariable(c.divisorVN);
+			newStatement(getVariable(vn), new CeilingOperator(c), rhs, false, false);
+			return true;
 		}
 
 		private Object returnsConstant(CGNode n) {
