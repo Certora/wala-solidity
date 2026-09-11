@@ -61,8 +61,8 @@ import com.ibm.wala.util.intset.MutableIntSet;
  * call targets and the library model in {@link Calls}, not the analysis result) and records, for
  * Phase 2 to propagate:
  * 
- * - each division's direction: Down, or Up for the round-up bias {@code (a+b-1)/b}
- *     (recognized when the divisor also flows into the dividend);
+ * - each division's direction: Down, Neither for a division by the constant 1, or Up for the
+ *     round-up bias {@code (a+b-1)/b} (recognized when the divisor also flows into the dividend);
  * - the values that compute a ceiling {@code ceil(N/D)} (see {@link #recognizeCeilings}):
  *     Phase 2 treats them as divUp(N, D). A bare {@code a/b + c} is not one, so it is skipped;
  * - divergence facts for branch merges and loops.
@@ -131,6 +131,9 @@ public class RoundingRecognition {
 	}
 
 	private Direction classify(SSABinaryOpInstruction instruction) {
+		if (isOne(instruction.getUse(1), dug.ir().getSymbolTable())) {
+			return Direction.Neither; // x / 1 == x: exact for every dividend
+		}
 		Set<SSAInstruction> divisor = getDivisorRelated(instruction);
 
 		Set<SSAInstruction> dividend = getDividendRelated(instruction);

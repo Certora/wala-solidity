@@ -24,24 +24,23 @@ public class TestForcedRounding extends AbstractJsonTest implements AbstractTest
 		return "test/data/ForcedRounding";
 	}
 
+	/**
+	 * Both functions compute {@code x / 1}, which is exact, so both are Neither. {@code forcedUp}'s
+	 * trailing {@code y = y + 0} adds the same value to the integer and the real run, so it cannot
+	 * make the result round up; it was once reported Up by a heuristic that read any addition after
+	 * a division as a round-up correction, which is unsound ({@code x / 3 + 5} rounds down).
+	 */
 	@Override
 	public void checkResult(DocumentContext jsonParser) {
-		JSONArray result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function forcedDown>' && @.return == 'Down') ]");		
-		System.err.println(result);
-		assert !result.isEmpty();
+		for (String fn : new String[] {"forcedDown", "forcedUp"}) {
+			JSONArray result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function " + fn + ">' && @.return == 'Neither') ]");
+			System.err.println(result);
+			assert !result.isEmpty() : fn + " should be exact";
 
-		result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function forcedDown>' && @.return != 'Down') ]");		
-		System.err.println(result);
-		assert result.isEmpty();
-
-		result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function forcedUp>' && @.return == 'Up') ]");		
-		System.err.println(result);
-		assert !result.isEmpty();
-
-		result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function forcedUp>' && @.return != 'Up') ]");		
-		System.err.println(result);
-		assert result.isEmpty();
+			result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function " + fn + ">' && @.return != 'Neither') ]");
+			System.err.println(result);
+			assert result.isEmpty() : fn + " should only be exact";
+		}
 	}
 
-	
 }
