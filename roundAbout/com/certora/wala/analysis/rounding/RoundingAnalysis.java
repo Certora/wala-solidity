@@ -104,10 +104,14 @@ public class RoundingAnalysis {
 
 	private final Map<CGNode, RoundingRecognition> recognitionCache = HashMapFactory.make();
 
+	/** Values that only ever say where to read or write; they name a location, so they are exact. */
+	private final PositionValues positions;
+
 	public RoundingAnalysis(CallGraph CG, PointerAnalysis<InstanceKey> PA, RoundingSummary S) {
 		this.CG = CG;
 		this.PA = PA;
 		this.S = S;
+		this.positions = new PositionValues(CG);
 	}
 
 	public RoundingAnalysis(CallGraph CG, PointerAnalysis<InstanceKey> PA) {
@@ -1024,9 +1028,14 @@ public class RoundingAnalysis {
 		 * phi operand it needs to be infeasible is dead here; otherwise null (the ordinary equation
 		 * applies).
 		 */
+		/** True when the value only names a location (an index or reference), so it does not round. */
+		private boolean isPosition(int vn) {
+			return positions.isPosition(n, vn);
+		}
+
 		private RoundingRecognition.Ceiling activeCeiling(int vn) {
 			RoundingRecognition.Ceiling c = recognition.ceiling(vn);
-			if (c == null) {
+			if (c == null || isPosition(vn)) {
 				return null;
 			}
 			for (int[] dead : c.deadPhiOperands) {
@@ -1132,6 +1141,9 @@ public class RoundingAnalysis {
 				@Override
 				public AbstractOperator<RoundingVariable> get(SSAInstruction instruction) {
 					result = null;
+					if (instruction.hasDef() && isPosition(instruction.getDef())) {
+						return new ConstantOperator(Direction.Neither);
+					}
 					if (! deadBlocks.contains(ir.getControlFlowGraph().getBlockForInstruction(instruction.iIndex()))) {
 						instruction.visit(this);
 					}
@@ -1388,7 +1400,7 @@ public class RoundingAnalysis {
 			});
 			ir.iteratePhis().forEachRemaining(inst -> {
 				SSAPhiInstruction phi = (SSAPhiInstruction) inst;
-				if (injectCeiling(phi.getDef())) {
+				if (isPosition(phi.getDef()) || injectCeiling(phi.getDef())) {
 					return;
 				}
 				RoundingRecognition.GuardedMerge gm = recognition.guardedMerge(phi);
