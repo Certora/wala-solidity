@@ -697,6 +697,46 @@ public class RoundingAnalysis {
 		};
 
 		/**
+		 * A bitwise operation ({@code &}, {@code |}, {@code ^}). Its result is not a numeric function
+		 * of its operands' magnitudes, so a rounded operand can move the result in either direction:
+		 * exact operands give an exact result, anything else is Inconsistent.
+		 */
+		private class BitwiseOperator extends AbstractOperator<RoundingVariable> {
+			@Override
+			public byte evaluate(RoundingVariable lhs, RoundingVariable[] rhs) {
+				Direction d = Direction.Neither;
+				for (RoundingVariable v : rhs) {
+					if (v.state == null) {
+						return NOT_CHANGED;
+					}
+					if (v.state != Direction.Neither) {
+						d = Direction.Inconsistent;
+					}
+				}
+				if (d != lhs.state) {
+					lhs.state = d;
+					return CHANGED;
+				}
+				return NOT_CHANGED;
+			}
+
+			@Override
+			public int hashCode() {
+				return 9127351;
+			}
+
+			@Override
+			public boolean equals(Object o) {
+				return o != null && o.getClass() == getClass();
+			}
+
+			@Override
+			public String toString() {
+				return "rounding bitwise op";
+			}
+		}
+
+		/**
 		 * A value Phase 1 recognized as computing {@code ceil(N / D)} (a
 		 * {@link RoundingRecognition.Ceiling}): divUp(N, D), which rounds Up, combined with the
 		 * directions of N's factors and the flipped direction of D.
@@ -1119,6 +1159,14 @@ public class RoundingAnalysis {
 					} else if (op == IBinaryOpInstruction.Operator.SUB) {
 
 						result = new BinaryOperator(true, Direction.Neither);
+
+					} else if (op == IBinaryOpInstruction.Operator.AND || op == IBinaryOpInstruction.Operator.OR
+							|| op == IBinaryOpInstruction.Operator.XOR) {
+						result = new BitwiseOperator();
+
+					} else if (op == IShiftInstruction.Operator.SHR || op == IShiftInstruction.Operator.USHR) {
+						// x >> k is floor(x / 2^k): it rounds down, and grows as k shrinks
+						result = new BinaryOperator(true, Direction.Down);
 
 					} else {
 						result = new ConstantOperator(Direction.Neither);

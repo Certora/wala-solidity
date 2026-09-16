@@ -25,10 +25,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -91,6 +93,24 @@ import com.ibm.wala.util.intset.MutableIntSet;
 
 public class JSONToCAst {
 	private int idx = 0;
+
+	/**
+	 * Where the {@code return}s of the function being translated jump to. Every value-returning
+	 * function gets one exit: a {@code return e} assigns the return variables and jumps there, and
+	 * the single {@code return} of those variables sits at the exit. Early returns then merge like
+	 * any other branch, so analyses see one phi per returned value instead of several exits.
+	 */
+	private static final class ReturnTarget {
+		final List<String> names;
+		final JSONObject exit;
+
+		ReturnTarget(List<String> names, JSONObject exit) {
+			this.names = names;
+			this.exit = exit;
+		}
+	}
+
+	private final Deque<ReturnTarget> returnTargets = new ArrayDeque<>();
 
 	private final CAst ast = new CAstImpl();
 	private final Map<Object, CAstType> entityTypes = HashMapFactory.make();
@@ -1199,7 +1219,26 @@ public class JSONToCAst {
 					.filter(d -> d.has("name") && !"".equals(d.getString("name")))
 					.forEach(d -> visit(d, child));
 					
-					CAstNode body = visit(o.getJSONObject("body"), child);
+					JSONArray retParams = o.getJSONObject("returnParameters").getJSONArray("parameters");
+					List<String> retNames = new ArrayList<>();
+					for (int i = 0; i < retParams.length(); i++) {
+						JSONObject p = retParams.getJSONObject(i);
+						retNames.add(p.has("name") && !"".equals(p.getString("name")) ? p.getString("name")
+								: "$ret" + i + "$" + idx++);
+					}
+					JSONObject exitKey = JSONObject.fromJson("{\"nodeType\": \"FunctionExit\"}", JSONObject.class);
+
+					CAstNode body;
+					if (retNames.isEmpty()) {
+						body = visit(o.getJSONObject("body"), child);
+					} else {
+						returnTargets.push(new ReturnTarget(retNames, exitKey));
+						try {
+							body = visit(o.getJSONObject("body"), child);
+						} finally {
+							returnTargets.pop();
+						}
+					}
 					
 					if ("constructor".equals(o.getString("kind"))) {
 						Streams.stream(o.getJSONArray("modifiers").iterator()).forEach(x -> {
@@ -1221,30 +1260,30 @@ public class JSONToCAst {
 						});
 					}
 
-					List<CAstNode> retDecls = new ArrayList<>(Streams
-							.stream(o.getJSONObject("returnParameters").getJSONArray("parameters").iterator())
-							.filter(x -> ((JSONObject) x).has("name") && !"".equals(((JSONObject)x).getString("name"))).map(x -> {
-								JSONObject p = (JSONObject) x;
-								CAstSymbol symbol = new CAstSymbolImpl(p.getString("name"), getType(p, context), false);
-								return ast.makeNode(CAstNode.BLOCK_STMT,
-										ast.makeNode(CAstNode.DECL_STMT, ast.makeConstant(symbol)),
-										ast.makeNode(CAstNode.ASSIGN, 
-											ast.makeNode(CAstNode.VAR, ast.makeConstant(p.getString("name"))),
-											ast.makeConstant(0)));
-							}).toList());
+					List<CAstNode> retDecls = new ArrayList<>();
+					for (int i = 0; i < retParams.length(); i++) {
+						CAstSymbol symbol = new CAstSymbolImpl(retNames.get(i), getType(retParams.getJSONObject(i), context), false);
+						retDecls.add(ast.makeNode(CAstNode.BLOCK_STMT,
+								ast.makeNode(CAstNode.DECL_STMT, ast.makeConstant(symbol)),
+								ast.makeNode(CAstNode.ASSIGN,
+									ast.makeNode(CAstNode.VAR, ast.makeConstant(retNames.get(i))),
+									ast.makeConstant(0))));
+					}
 
-					if (retDecls.size() > 0) {
-						CAstType tt = SolidityTupleType.get(Streams.stream(o.getJSONObject("returnParameters").getJSONArray("parameters").iterator())
+					if (!retNames.isEmpty()) {
+						CAstType tt = SolidityTupleType.get(Streams.stream(retParams.iterator())
 							.map(x -> getType((JSONObject)x, context))
 							.toArray(i -> new CAstType[i]));
 
-						CAstNode[] retVals = Streams
-						   .stream(o.getJSONObject("returnParameters").getJSONArray("parameters").iterator())
-						   .filter(x -> ((JSONObject) x).has("name") && !"".equals(((JSONObject)x).getString("name")))
-						   .map(x -> ast.makeNode(CAstNode.VAR,
-								   ast.makeConstant(((JSONObject) x).getString("name"))))
+						CAstNode[] retVals = retNames.stream()
+						   .map(name -> ast.makeNode(CAstNode.VAR, ast.makeConstant(name)))
 						   .toArray(i -> new CAstNode[i]);
-						
+
+						// the single exit every return jumps to, so the returned values merge here
+						CAstNode exitLabel = ast.makeNode(CAstNode.LABEL_STMT, ast.makeConstant("exit" + idx++),
+							ast.makeNode(CAstNode.EMPTY));
+						child.cfg().map(exitKey, exitLabel);
+
 						CAstNode ret = ast.makeNode(CAstNode.RETURN, 
 							(retVals.length == 1)?
 							retVals[0]:
@@ -1252,7 +1291,7 @@ public class JSONToCAst {
 								ast.makeConstant(tt),
 								retVals));
 							
-						body = ast.makeNode(CAstNode.BLOCK_STMT, body, ret);
+						body = ast.makeNode(CAstNode.BLOCK_STMT, body, exitLabel, ret);
 					}
 
 					retDecls.add(body);
@@ -1504,11 +1543,51 @@ public class JSONToCAst {
 			
 			@SuppressWarnings("unused")
 			public CAstNode visitReturn(JSONObject o, SolidityWalkContext context) {
+				CAstNode exiting = returnThroughExit(o, context);
+				if (exiting != null) {
+					return exiting;
+				}
 				if (o.has("expression")) {
 					return record(ast.makeNode(CAstNode.RETURN, visit(o.getJSONObject("expression"), context)), getLocation(o.getString("src")), context);					
 				} else {
 					return record(ast.makeNode(CAstNode.RETURN), getLocation(o.getString("src")), context);					
 				}
+			}
+
+			/**
+			 * A {@code return} inside a value-returning function, as assignments to the return
+			 * variables followed by a jump to the function's exit. Returns null when there is no such
+			 * exit (a void function) or the returned value cannot be split over the return variables,
+			 * leaving the statement to translate as an ordinary return.
+			 */
+			private CAstNode returnThroughExit(JSONObject o, SolidityWalkContext context) {
+				ReturnTarget target = returnTargets.peek();
+				if (target == null) {
+					return null;
+				}
+				List<CAstNode> stmts = new ArrayList<>();
+				if (o.has("expression")) {
+					JSONObject value = o.getJSONObject("expression");
+					List<JSONObject> parts = new ArrayList<>();
+					if (target.names.size() == 1) {
+						parts.add(value);
+					} else if ("TupleExpression".equals(value.getString("nodeType"))
+							&& value.getJSONArray("components").length() == target.names.size()) {
+						value.getJSONArray("components").forEach(c -> parts.add((JSONObject) c));
+					} else {
+						return null; // e.g. returning a tuple-valued call: keep the direct return
+					}
+					for (int i = 0; i < parts.size(); i++) {
+						stmts.add(ast.makeNode(CAstNode.ASSIGN,
+							ast.makeNode(CAstNode.VAR, ast.makeConstant(target.names.get(i))),
+							visit(parts.get(i), context)));
+					}
+				}
+				CAstNode goExit = ast.makeNode(CAstNode.GOTO);
+				context.cfg().map(goExit, goExit);
+				context.cfg().add(goExit, target.exit, null);
+				stmts.add(goExit);
+				return record(ast.makeNode(CAstNode.BLOCK_STMT, stmts), getLocation(o.getString("src")), context);
 			}
 
 			@SuppressWarnings("unused")
