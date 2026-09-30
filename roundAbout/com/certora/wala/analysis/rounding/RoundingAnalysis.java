@@ -69,7 +69,6 @@ public class RoundingAnalysis {
 			.make();
 
 	private final Map<CGNode, RoundingRecognition> recognitionCache = HashMapFactory.make();
-	private final Map<CGNode, Feasibility> feasibilityCache = HashMapFactory.make();
 	private final Map<CGNode, RoundingGraph> graphCache = HashMapFactory.make();
 
 	/** Values that only ever say where to read or write; they name a location, so they are exact. */
@@ -111,7 +110,7 @@ public class RoundingAnalysis {
 	RoundingGraph getGraph(CGNode n) {
 		RoundingGraph g = graphCache.get(n);
 		if (g == null) {
-			Feasibility f = feasibilityCache.computeIfAbsent(n, x -> new Feasibility(x, CG, PA));
+			Feasibility f = new Feasibility(n, CG, PA);
 			g = new RoundingGraphBuilder(n, getRecognition(n), f, vn -> positions.isPosition(n, vn)).build();
 			graphCache.put(n, g);
 		}
@@ -361,15 +360,6 @@ public class RoundingAnalysis {
 			}
 		}
 
-		private RoundingSummary.Value getSummaryIfAny(SSAAbstractInvokeInstruction callInst) {
-			List<Direction> args = new ArrayList<>(callInst.getNumberOfUses());
-			for (int i = 0; i < callInst.getNumberOfUses(); i++) {
-				args.add(stateOf(callInst.getUse(i)));
-			}
-
-			return S.get(new RoundingSummary.Key(callInst.getCallSite().getDeclaredTarget().getDeclaringClass().getName().toString(), args));
-		}
-
 		public RoundingInference(List<Direction> parameters, Set<Pair<CGNode, List<Direction>>> ongoing, CGNode n)
 				throws CancelException {
 			ir = n.getIR();
@@ -392,7 +382,8 @@ public class RoundingAnalysis {
 					}
 
 					Direction d = Direction.Neither;
-					RoundingSummary.Value summary = getSummaryIfAny(callInst);
+					RoundingSummary.Value summary = S.get(new RoundingSummary.Key(
+							callInst.getCallSite().getDeclaredTarget().getDeclaringClass().getName().toString(), args));
 					if (summary != null) {
 						d = summary.result;
 

@@ -173,16 +173,14 @@ public class RoundingGraphBuilder {
 			}
 		}
 
-		MutableIntSet returns = com.ibm.wala.util.intset.IntSetUtil.make();
+		List<Integer> returns = new ArrayList<>();
 		for (int v = 1; v <= max; v++) {
 			if (owner[v] == v && hasReturn(v)) {
 				assert !absorbed.contains(v) : "returned value v" + v + " was absorbed";
 				returns.add(v);
 			}
 		}
-		int[] returnVns = new int[returns.size()];
-		int[] i = { 0 };
-		returns.foreach(v -> returnVns[i[0]++] = v);
+		int[] returnVns = returns.stream().mapToInt(Integer::intValue).toArray();
 
 		return new RoundingGraph(byVn, equationOrder, owner, returnVns);
 	}

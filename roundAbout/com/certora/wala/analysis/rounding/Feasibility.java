@@ -155,14 +155,6 @@ public class Feasibility {
 						if (otherObjs.contains(ik) && otherObjs.size()==1) {
 							gatherControlDeps(use.getDef(), false);
 						} else {
-							if (!otherObjs.isEmpty() &&
-								Streams.stream(otherObjs)
-									.filter(ok -> ok.getConcreteType().equals(ik.getConcreteType()) &&
-											      (!(ok instanceof ConstantKey<?>) ||
-											       ((ConstantKey<?>)ik).getValue().equals(((ConstantKey<?>)ok).getValue())))
-									.findAny()
-									.isEmpty()) {
-								}
 							gatherControlDeps(use.getDef(), true);
 						}
 					}
