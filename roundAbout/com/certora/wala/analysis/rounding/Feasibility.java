@@ -153,8 +153,18 @@ public class Feasibility {
 						PointerKey otherKey = PA.getHeapModel().getPointerKeyForLocal(n, otherV);
 						OrdinalSet<InstanceKey> otherObjs = PA.getPointsToSet(otherKey);
 						if (otherObjs.contains(ik) && otherObjs.size()==1) {
+							// the other operand can only be this constant: the equality always holds
 							gatherControlDeps(use.getDef(), false);
-						} else {
+						} else if (!otherObjs.isEmpty() &&
+							Streams.stream(otherObjs)
+								.filter(ok -> ok.getConcreteType().equals(ik.getConcreteType()) &&
+										      (!(ok instanceof ConstantKey<?>) ||
+										       ((ConstantKey<?>)ik).getValue().equals(((ConstantKey<?>)ok).getValue())))
+								.findAny()
+								.isEmpty()) {
+							// no value the other operand can take could equal the constant: the
+							// equality never holds. When it merely might not hold, neither side
+							// is dead and nothing may be pruned.
 							gatherControlDeps(use.getDef(), true);
 						}
 					}
