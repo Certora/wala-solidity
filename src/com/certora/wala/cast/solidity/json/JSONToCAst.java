@@ -1897,7 +1897,8 @@ public class JSONToCAst {
 							case "and":
 			                      return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_BIT_AND, as[0], as[1]), getLocation(o.getString("src")), context);
 							case "shr":
-			                      return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_RSH, as[0], as[1]), getLocation(o.getString("src")), context);
+								  // Yul shr(s, v) is v >> s: the shift amount comes first
+			                      return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_RSH, as[1], as[0]), getLocation(o.getString("src")), context);
 							case "sub":
 			                      return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_SUB, as[0], as[1]), getLocation(o.getString("src")), context);
 							case "gt":
