@@ -330,6 +330,15 @@ public class RoundingAnalysis {
 					yield r == null ? Direction.Neither : r;
 				}
 
+				case RoundingGraph.Load l -> {
+					// rhs = [index]. An exact index reads the same cell in both runs and the
+					// value found there is a fresh unknown, as before; a rounded index makes
+					// the runs read different cells, so the loaded value is Inconsistent.
+					Direction idx = rhs[0].state;
+					yield idx == null ? null
+							: idx == Direction.Neither ? Direction.Neither : Direction.Inconsistent;
+				}
+
 				case RoundingGraph.Const c -> throw new AssertionError(node);
 				case RoundingGraph.Param p -> throw new AssertionError(node);
 				case RoundingGraph.Opaque o -> throw new AssertionError(node);

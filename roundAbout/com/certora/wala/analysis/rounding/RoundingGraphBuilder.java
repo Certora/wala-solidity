@@ -348,6 +348,14 @@ public class RoundingGraphBuilder {
 		}
 
 		@Override
+		public void visitArrayLoad(SSAArrayLoadInstruction instruction) {
+			if (mapping[instruction.getDef()] != instruction.getDef()) {
+				return; // aliased to a dominating store: the stored value's node stands for both
+			}
+			result = new RoundingGraph.Load(o, owner[instruction.getIndex()]);
+		}
+
+		@Override
 		public void visitInvoke(SSAInvokeInstruction instruction) {
 			if (instruction.hasDef()) {
 				result = new RoundingGraph.Call(o, instruction);

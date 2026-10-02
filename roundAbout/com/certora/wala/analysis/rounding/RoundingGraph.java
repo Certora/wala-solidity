@@ -47,7 +47,7 @@ public class RoundingGraph {
 	 * not handled there is a compile error, not a silently missing equation.
 	 */
 	public sealed interface Node
-			permits Const, Param, Opaque, Add, Mul, Sub, Neg, Assign, Div, Bitwise, Merge, GuardedMerge, LoopMerge, FloorMerge, Call {
+			permits Const, Param, Opaque, Add, Mul, Sub, Neg, Assign, Div, Bitwise, Merge, GuardedMerge, LoopMerge, FloorMerge, Load, Call {
 		/** The value number this node defines. */
 		int vn();
 	}
@@ -117,6 +117,16 @@ public class RoundingGraph {
 	public record FloorMerge(int vn, int[] arms, int[] guardSlice) implements Node {
 	}
 
+	/**
+	 * A read through a computed index. An exact index reads the same cell in both runs, and the
+	 * value found there is a fresh unknown as before; a rounded index makes the two runs read
+	 * different cells, so the loaded value bears no relation to its intended counterpart and is
+	 * Inconsistent. Loads aliased to a dominating store keep the stored value's node instead:
+	 * both runs read back what they themselves wrote, whatever the index did.
+	 */
+	public record Load(int vn, int index) implements Node {
+	}
+
 	/** A call: summaries and callee recursion are keyed by directions, so its transfer lives in Phase 2. */
 	public record Call(int vn, SSAAbstractInvokeInstruction site) implements Node {
 	}
@@ -138,6 +148,7 @@ public class RoundingGraph {
 		case GuardedMerge g -> new int[] { g.bound(), g.thenArm(), g.elseArm() };
 		case LoopMerge l -> new int[] { l.init(), l.latch(), l.ivInit() };
 		case FloorMerge f -> f.arms();
+		case Load l -> NONE;
 		case Call c -> {
 			int[] uses = new int[c.site().getNumberOfUses()];
 			for (int i = 0; i < uses.length; i++) {
@@ -154,6 +165,7 @@ public class RoundingGraph {
 		case GuardedMerge g -> new int[] { g.guard() };
 		case LoopMerge l -> new int[] { l.bound() };
 		case FloorMerge f -> f.guardSlice();
+		case Load l -> new int[] { l.index() };
 		default -> NONE;
 		};
 	}
@@ -168,6 +180,7 @@ public class RoundingGraph {
 			System.arraycopy(f.guardSlice(), 0, r, f.arms().length, f.guardSlice().length);
 			yield r;
 		}
+		case Load l -> new int[] { l.index() };
 		default -> valueOperands(n);
 		};
 	}
