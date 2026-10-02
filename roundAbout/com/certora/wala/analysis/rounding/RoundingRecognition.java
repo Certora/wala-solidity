@@ -53,6 +53,7 @@ import com.ibm.wala.util.graph.dominators.Dominators;
 import com.ibm.wala.util.graph.impl.GraphInverter;
 import com.ibm.wala.util.graph.traverse.DFS;
 import com.ibm.wala.util.intset.IBinaryNaturalRelation;
+import com.ibm.wala.util.intset.IntIterator;
 import com.ibm.wala.util.intset.IntSetUtil;
 import com.ibm.wala.util.intset.MutableIntSet;
 
@@ -146,7 +147,20 @@ public class RoundingRecognition {
 		MutableIntSet bothValues = getRelatedValues(instruction.getUse(1), divisor, false);
 		bothValues.intersectWith(getRelatedValues(instruction.getUse(0), dividendAddends, false));
 
-		return bothValues.isEmpty() ? Direction.Down : Direction.Up;
+		// A shared literal (the symbol table interns one value number per constant, so the two
+		// 1s of assets * (supply + 1) / (totalAssets + 1) are the same value) or the shared
+		// contract reference behind two storage reads says nothing about a round-up bias; only
+		// a genuinely shared expression, like the divisor flowing into the dividend's addition,
+		// does.
+		SymbolTable st = dug.ir().getSymbolTable();
+		IntIterator it = bothValues.intIterator();
+		while (it.hasNext()) {
+			int v = it.next();
+			if (v != 1 && !st.isConstant(v)) {
+				return Direction.Up;
+			}
+		}
+		return Direction.Down;
 	}
 
 	// ceiling idioms
