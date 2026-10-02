@@ -1296,11 +1296,11 @@ public class RoundingRecognition {
 	}
 
 	private static MutableIntSet getRelatedValues(int startValue, Set<SSAInstruction> related, boolean forward) {
-		return IntSetUtil.make(IntStream.concat(
-				related.stream()
-						.map(inst -> (forward ? IntStream.of(inst.getDef()).filter(i -> i > 0)
-								: IntStream.range(0, inst.getNumberOfUses()).map(i -> inst.getUse(i))))
-						.reduce((a, b) -> IntStream.concat(a, b)).orElse(IntStream.empty()),
-				IntStream.of(startValue)).distinct().toArray());
+		// flatMapToInt rather than reduce(IntStream::concat): repeated concat nests streams
+		// and can overflow the stack on large backward slices
+		IntStream values = related.stream()
+				.flatMapToInt(inst -> forward ? IntStream.of(inst.getDef()).filter(i -> i > 0)
+						: IntStream.range(0, inst.getNumberOfUses()).map(inst::getUse));
+		return IntSetUtil.make(IntStream.concat(values, IntStream.of(startValue)).distinct().toArray());
 	}
 }
