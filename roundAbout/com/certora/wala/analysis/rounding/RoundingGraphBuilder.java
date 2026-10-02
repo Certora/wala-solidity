@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.function.IntPredicate;
 
 import com.certora.wala.analysis.rounding.RoundingGraph.Node;
+import com.ibm.wala.cast.ir.ssa.CAstUnaryOp;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.shrike.shrikeBT.IBinaryOpInstruction;
 import com.ibm.wala.shrike.shrikeBT.IShiftInstruction;
@@ -313,8 +314,12 @@ public class RoundingGraphBuilder {
 		@Override
 		public void visitUnaryOp(SSAUnaryOpInstruction instruction) {
 			IUnaryOpInstruction.IOperator op = instruction.getOpcode();
-			if (op == IUnaryOpInstruction.Operator.NEG) {
+			if (op == CAstUnaryOp.MINUS || op == CAstUnaryOp.BITNOT) {
+				// -x mirrors x around zero and ~x is -x - 1: both flip the direction
 				result = new RoundingGraph.Neg(o, owner[instruction.getUse(0)]);
+			} else if (op == IUnaryOpInstruction.Operator.NEG) {
+				// logical ! produces a boolean, not an amount
+				result = new RoundingGraph.Opaque(o, "boolean", true);
 			} else {
 				result = new RoundingGraph.Assign(o, owner[instruction.getUse(0)]);
 			}

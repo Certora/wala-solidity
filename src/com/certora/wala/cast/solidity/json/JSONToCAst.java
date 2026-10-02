@@ -1903,15 +1903,37 @@ public class JSONToCAst {
 			                      return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_SUB, as[0], as[1]), getLocation(o.getString("src")), context);
 							case "gt":
 		                        return ast.makeNode(CAstNode.IF_EXPR, record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_GT, as[0], as[1]), getLocation(o.getString("src")), context), ast.makeConstant(1), ast.makeConstant(0));
+							case "sgt": // signed comparison; signedness is not modelled downstream
+		                        return ast.makeNode(CAstNode.IF_EXPR, record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_GT, as[0], as[1]), getLocation(o.getString("src")), context), ast.makeConstant(1), ast.makeConstant(0));
 							case "iszero":
 		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_EQ, as[0], ast.makeConstant(0)), getLocation(o.getString("src")), context);
-							case "not":
-		                        return record(ast.makeNode(CAstNode.UNARY_EXPR, CAstOperator.OP_NOT, as[0]), getLocation(o.getString("src")), context);
+							case "not": // bitwise complement, not logical negation
+		                        return record(ast.makeNode(CAstNode.UNARY_EXPR, CAstOperator.OP_BITNOT, as[0]), getLocation(o.getString("src")), context);
 							case "lt":
 		                        return ast.makeNode(CAstNode.IF_EXPR, record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_LT, as[0], as[1]), getLocation(o.getString("src")), context), ast.makeConstant(1), ast.makeConstant(0));
+							case "slt": // signed comparison; signedness is not modelled downstream
+		                        return ast.makeNode(CAstNode.IF_EXPR, record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_LT, as[0], as[1]), getLocation(o.getString("src")), context), ast.makeConstant(1), ast.makeConstant(0));
+							case "shl": // Yul shl(s, v) is v << s: the shift amount comes first
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_LSH, as[1], as[0]), getLocation(o.getString("src")), context);
+							case "sar": // signed shift right; Yul sar(s, v) is v >> s
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_RSH, as[1], as[0]), getLocation(o.getString("src")), context);
+							case "xor":
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_BIT_XOR, as[0], as[1]), getLocation(o.getString("src")), context);
+							case "exp":
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_POW, as[0], as[1]), getLocation(o.getString("src")), context);
+							case "sdiv": // signed division; signedness is not modelled downstream
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_DIV, as[0], as[1]), getLocation(o.getString("src")), context);
+							case "smod": // signed remainder; signedness is not modelled downstream
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MOD, as[0], as[1]), getLocation(o.getString("src")), context);
 							case "mulmod":
 		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MOD, ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MUL, as[0], as[1]), as[2]), getLocation(o.getString("src")), context);
+							case "addmod":
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MOD, ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_ADD, as[0], as[1]), as[2]), getLocation(o.getString("src")), context);
 		                    default:
+		                    	// Dataflow through the builtin is severed: the EMPTY node becomes a
+		                    	// null constant. Say so instead of doing it silently.
+		                    	System.err.println("warning: unhandled Yul builtin '" + fun.getString("name")
+		                    			+ "' at " + o.getString("src") + "; its result is opaque");
 		                    	return ast.makeNode(CAstNode.EMPTY);
 		                   }
 						}
