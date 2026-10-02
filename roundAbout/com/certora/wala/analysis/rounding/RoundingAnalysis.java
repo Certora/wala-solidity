@@ -407,7 +407,9 @@ public class RoundingAnalysis {
 										@SuppressWarnings("unused")
 										RoundingInference child = new RoundingInference(args, x, cgn);
 									} catch (CancelException e) {
-										assert false : e;
+										// without assertions this used to continue with the call
+										// silently treated as exact
+										throw new RuntimeException("analysis of " + cgn + " was cancelled", e);
 									}
 								}
 								if (directionalCalls.containsKey(key) && directionalCalls.get(key).containsKey(null)) {

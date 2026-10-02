@@ -277,7 +277,8 @@ public class Feasibility {
 		    try {
 				solve(new NullProgressMonitor());
 			} catch (CancelException e) {
-				assert false : e;
+				// without assertions this used to continue with a half-solved propagation
+				throw new RuntimeException("boolean constant propagation for " + node + " was cancelled", e);
 			}
 		}
 
