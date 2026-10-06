@@ -107,7 +107,7 @@ public class RoundingAnalysis {
 	}
 
 	/** Phase 1's graph of this node's operations (cached; direction-independent). */
-	RoundingGraph getGraph(CGNode n) {
+	public RoundingGraph getGraph(CGNode n) {
 		RoundingGraph g = graphCache.get(n);
 		if (g == null) {
 			Feasibility f = new Feasibility(n, CG, PA);
