@@ -33,9 +33,9 @@ public class TestEnumCompare extends AbstractJsonTest {
 	@Override
 	public void checkResult(DocumentContext jsonParser) {
 		expectReturn(jsonParser, "callNever", "Down");
-		expectReturn(jsonParser, "callStored", "Either");
-		expectReturn(jsonParser, "callParam", "Either");
-		expectReturn(jsonParser, "callPick", "Either");
+		expectReturn(jsonParser, "callStored", "Inconsistent");
+		expectReturn(jsonParser, "callParam", "Inconsistent");
+		expectReturn(jsonParser, "callPick", "Inconsistent");
 	}
 
 	private void expectReturn(DocumentContext jsonParser, String function, String direction) {

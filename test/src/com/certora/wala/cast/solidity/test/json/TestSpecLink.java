@@ -22,7 +22,7 @@ public class TestSpecLink extends AbstractJsonTest {
 
 	@Override
 	public void checkResult(DocumentContext jsonParser) {
-		JSONArray result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function computeN>' && @.return == 'Either') ]");		
+		JSONArray result = jsonParser.read("$.graphs[*].nodes[*].metadata[?(@.method == '<Code body of function computeN>' && @.return == 'Inconsistent') ]");
 		assert !result.isEmpty();
 		System.err.println(result);
 	}

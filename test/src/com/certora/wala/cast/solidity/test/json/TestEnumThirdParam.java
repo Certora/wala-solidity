@@ -21,7 +21,7 @@ import com.jayway.jsonpath.DocumentContext;
  * {@code EnumValueContextSelector} reads the builder's compact key array (receiver first,
  * then one slot per relevant parameter in ascending order); if a WALA upgrade changes that
  * convention to position-indexed arrays, the constant lands on the wrong parameter and both
- * wrappers degrade to Either. See the external-audit triage (B1) in HANDOFF.md.
+ * wrappers degrade to Inconsistent. See the external-audit triage (B1) in HANDOFF.md.
  */
 public class TestEnumThirdParam extends AbstractJsonTest {
 
