@@ -111,6 +111,17 @@ for f in sorted(os.listdir(DIR)):
             viol += 1
             viols.append((test, fn, sorted(vs), above, below, equal, amb, disc))
 
+seen_tags = {f[:-4] for f in os.listdir(DIR) if f.endswith('.tsv')}
+expected = set(TAGMAP)
+missing = sorted(expected - seen_tags)
+extra = sorted(seen_tags - expected)
+if missing or extra:
+    for t in missing:
+        print(f"MISSING RESULTS for {TAGMAP[t]} ({t}.tsv)")
+    for t in extra:
+        print(f"UNEXPECTED RESULTS FILE {t}.tsv")
+    raise SystemExit(1)
+print(f"coverage: {len(seen_tags)}/{len(expected)} corpus configurations")
 print(f"functions checked: {ok + viol}  OK: {ok}  VIOLATIONS: {viol}")
 print(f"  Indet functions: two-sided confirmed {indet2}, one-sided {indet1}")
 print(f"  rows with no verdict match: {nov}, fully discarded: {skipped}")

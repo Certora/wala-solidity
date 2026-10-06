@@ -1,2 +1,5 @@
-"""The 21 corpus protocol tests; everything else in the extracts is synthetic."""
-PROT = {"TestAaveV3PoolInstanceBuiltin","TestAaveV3PoolInstanceSanity","TestAaveV4HubValidState","TestAaveV4Liquidation","TestBalancerStablePool4f189ea1","TestBalancerStablePoolPaminaNov25","TestCorkAuxiliary","TestCozyEuler","TestEigenLayer","TestEnsEthRegistrar","TestEulerEarn","TestGhoGsmOptimality","TestInfiniFiMintController","TestMezzanine","TestMorphoMidnight","TestMorphoSharePrice","TestRoycoAccountant","TestSaturnDollar","TestTokemakStrategy","TestTokemakVault","TestVedaBoring"}
+"""Compatibility re-export: the corpus manifest in corpus.py is the single source of truth."""
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from corpus import PROT  # noqa: F401
