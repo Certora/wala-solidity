@@ -12,7 +12,6 @@
  */
 package com.certora.wala.cast.solidity.translator;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +36,6 @@ import com.ibm.wala.cast.tree.CAstType;
 import com.ibm.wala.cast.tree.impl.CAstSymbolImpl;
 import com.ibm.wala.cast.tree.visit.CAstVisitor;
 import com.ibm.wala.cast.types.AstMethodReference;
-import com.ibm.wala.cast.util.SourceBuffer;
 import com.ibm.wala.cfg.AbstractCFG;
 import com.ibm.wala.cfg.IBasicBlock;
 import com.ibm.wala.classLoader.CallSiteReference;
@@ -275,19 +273,33 @@ public class SolidityAstTranslator extends AstTranslator {
 				m = ((SolidityLoader)loader).getReference((FunctionType) recCAstType);
 			}
 			
-			boolean superCall = false;
-			try {
-				Position p = context.top().getSourceMap().getPosition(call.getChild(0));
-				if (p != null) {
-					String selfSrc = new SourceBuffer(p).toString();
-					if (selfSrc.startsWith("super.")) {
-						superCall = true;
+			// A super call's callee is the member access super.<member>, whose base the
+			// CAst builder renders as the magic PRIMITIVE "super". A callee that merely
+			// CONTAINS a super call (super.f(x).half()) has a CALL base and dispatches
+			// normally.
+			CAstNode callee = call.getChild(0);
+			boolean superCall = callee.getKind() == CAstNode.OBJECT_REF
+					&& callee.getChild(0).getKind() == CAstNode.PRIMITIVE
+					&& callee.getChild(0).getChildCount() > 0
+					&& "super".equals(callee.getChild(0).getChild(0).getValue());
+			if (Boolean.getBoolean("debugSuperDispatch")) {
+				boolean oldHeuristic = false;
+				String text = "<no position>";
+				try {
+					com.ibm.wala.cast.tree.CAstSourcePositionMap.Position p = context.top().getSourceMap().getPosition(callee);
+					if (p != null) {
+						text = new com.ibm.wala.cast.util.SourceBuffer(p).toString();
+						oldHeuristic = text.startsWith("super.");
 					}
+				} catch (java.io.IOException e) {
+					text = "<unreadable>";
 				}
-			} catch (IOException e) {
-				assert false : e;
+				if (oldHeuristic != superCall) {
+					System.err.println("[superDispatch] structural=" + superCall + " old=" + oldHeuristic
+							+ " callee=" + callee + " text='" + text.replace('\n', ' ') + "'");
+				}
 			}
-			
+
 			int instNum = context.cfg().getCurrentInstruction();
 			CallSiteReference csr = CallSiteReference.make(instNum, m, superCall? Dispatch.SPECIAL: Dispatch.VIRTUAL);
 
