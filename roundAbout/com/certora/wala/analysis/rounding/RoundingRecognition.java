@@ -435,8 +435,9 @@ public class RoundingRecognition {
 		}
 		SSAInstruction def = dug.du().getDef(vn);
 		if (def instanceof SSABinaryOpInstruction
-				&& ((SSABinaryOpInstruction) def).getOperator() == IBinaryOpInstruction.Operator.MUL) {
-			return nonzeroAt(def.getUse(0), at, ir, cfg, dom, literals) && nonzeroAt(def.getUse(1), at, ir, cfg, dom, literals);
+				&& ((SSABinaryOpInstruction) def).getOperator() == IBinaryOpInstruction.Operator.MUL
+				&& nonzeroAt(def.getUse(0), at, ir, cfg, dom, literals) && nonzeroAt(def.getUse(1), at, ir, cfg, dom, literals)) {
+			return true;
 		}
 		// A block entered only through one edge of a conditional knows that edge's outcome.
 		for (ISSABasicBlock b = at; b != null; b = dom.getIdom(b)) {
