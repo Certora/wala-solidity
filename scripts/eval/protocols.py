@@ -1,0 +1,2 @@
+"""The 21 corpus protocol tests; everything else in the extracts is synthetic."""
+PROT = {"TestAaveV3PoolInstanceBuiltin","TestAaveV3PoolInstanceSanity","TestAaveV4HubValidState","TestAaveV4Liquidation","TestBalancerStablePool4f189ea1","TestBalancerStablePoolPaminaNov25","TestCorkAuxiliary","TestCozyEuler","TestEigenLayer","TestEnsEthRegistrar","TestEulerEarn","TestGhoGsmOptimality","TestInfiniFiMintController","TestMezzanine","TestMorphoMidnight","TestMorphoSharePrice","TestRoycoAccountant","TestSaturnDollar","TestTokemakStrategy","TestTokemakVault","TestVedaBoring"}
