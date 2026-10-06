@@ -18,36 +18,16 @@ import sys
 ROOTS = sys.argv[1] if len(sys.argv) > 1 else 'private-scratch-roots.txt'
 DIR = sys.argv[2] if len(sys.argv) > 2 else 'diffq'
 
-# tag prefix (dir-derived) -> extract test prefix
-TAGMAP = {
-    'AaveV3_PoolInstance-PoolInstance_sanity': 'TestAaveV3PoolInstanceSanity',
-    'AaveV3_PoolInstance-PoolInstance_builtin_assertions': 'TestAaveV3PoolInstanceBuiltin',
-    'AaveV4_HubValidState': 'TestAaveV4HubValidState',
-    'AaveV4_Liquidation': 'TestAaveV4Liquidation',
-    'BalancerV2_stablePool_4f189ea1': 'TestBalancerStablePool4f189ea1',
-    'BalancerV2_stablePool_PaminaNov25': 'TestBalancerStablePoolPaminaNov25',
-    'Cork_0Auxiliary': 'TestCorkAuxiliary',
-    'CozyEuler_TrancheRaiseStrategy': 'TestCozyEuler',
-    'EigenLayer_EigenPodManagerRules': 'TestEigenLayer',
-    'ENS_ETHRegistrar': 'TestEnsEthRegistrar',
-    'EulerEarn_Solvency': 'TestEulerEarn',
-    'Gho_GsmOptimality': 'TestGhoGsmOptimality',
-    'InfiniFi_MintController': 'TestInfiniFiMintController',
-    'Mezzanine_IssuanceVault': 'TestMezzanine',
-    'MorphoV2_Midnight': 'TestMorphoMidnight',
-    'MorphoV2_SharePrice': 'TestMorphoSharePrice',
-    'RoycoDawn_AccoutantSanity': 'TestRoycoAccountant',
-    'SaturnDollar_USDatBacking': 'TestSaturnDollar',
-    'Tokemak_LMPVault': 'TestTokemakVault',
-    'Tokemak_LMPStrategy': 'TestTokemakStrategy',
-    'VedaBoring_AccountantWithRateProviders': 'TestVedaBoring',
-}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from corpus import CORPUS, tag as tag_of
 
-def test_of(tag):
-    for k in sorted(TAGMAP, key=len, reverse=True):
-        if tag.startswith(k):
-            return TAGMAP[k]
-    return None
+TAGMAP = {tag_of(t): t for t, _, _, _ in CORPUS}
+
+
+def test_of(t):
+    if t not in TAGMAP:
+        raise SystemExit(f"results file with unmapped tag: {t} - update corpus.py")
+    return TAGMAP[t]
 
 # verdicts per (test, function-name): multiset of scalar returns in all-exact contexts
 verdicts = collections.defaultdict(set)
