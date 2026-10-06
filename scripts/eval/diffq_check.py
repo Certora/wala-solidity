@@ -38,7 +38,8 @@ TAGMAP = {
     'MorphoV2_SharePrice': 'TestMorphoSharePrice',
     'RoycoDawn_AccoutantSanity': 'TestRoycoAccountant',
     'SaturnDollar_USDatBacking': 'TestSaturnDollar',
-    'Tokemak': 'TestTokemak',  # refined below by conf name if needed
+    'Tokemak_LMPVault': 'TestTokemakVault',
+    'Tokemak_LMPStrategy': 'TestTokemakStrategy',
     'VedaBoring_AccountantWithRateProviders': 'TestVedaBoring',
 }
 
