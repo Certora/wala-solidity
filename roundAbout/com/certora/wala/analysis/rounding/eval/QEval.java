@@ -28,6 +28,7 @@ import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.shrike.shrikeBT.IConditionalBranchInstruction;
 import com.ibm.wala.shrike.shrikeBT.IShiftInstruction;
+import com.ibm.wala.ssa.DefUse;
 import com.ibm.wala.ssa.IR;
 import com.ibm.wala.ssa.ISSABasicBlock;
 import com.ibm.wala.ssa.SSABinaryOpInstruction;
@@ -224,16 +225,31 @@ public final class QEval {
 
 	private final CallGraph cg;
 	private final Function<CGNode, RoundingGraph> graphs;
-	private final Map<CGNode, Dominators<ISSABasicBlock>> domCache = new HashMap<>();
+	private final Map<CGNode, Code> codeCache = new HashMap<>();
 
 	public QEval(CallGraph cg, Function<CGNode, RoundingGraph> graphs) {
 		this.cg = cg;
 		this.graphs = graphs;
 	}
 
-	private Dominators<ISSABasicBlock> dominators(CGNode n) {
-		return domCache.computeIfAbsent(n,
-				x -> Dominators.make(x.getIR().getControlFlowGraph(), x.getIR().getControlFlowGraph().entry()));
+	/**
+	 * One node's IR with the def-use and dominator information built from that same IR
+	 * object. {@code n.getIR()} and {@code n.getDU()} cannot be mixed: WALA caches the IR
+	 * per method but the def-use per (method, context), and a cache wipe (soft-reference
+	 * clearing, {@code ReferenceCleanser}) rebuilds the IR, so a later {@code getDU()} can
+	 * hold another IR's instructions and identity lookups of its phis fail - at a
+	 * memory-dependent, run-to-run varying point. Q refers only to value numbers and call
+	 * sites, which every rebuild of the IR preserves.
+	 */
+	private record Code(IR ir, DefUse du, Dominators<ISSABasicBlock> dom) {
+	}
+
+	private Code code(CGNode n) {
+		return codeCache.computeIfAbsent(n, x -> {
+			IR ir = x.getIR();
+			return new Code(ir, new DefUse(ir),
+					Dominators.make(ir.getControlFlowGraph(), ir.getControlFlowGraph().entry()));
+		});
 	}
 
 	private static SSAConditionalBranchInstruction conditionalOf(ISSABasicBlock bb, IR ir) {
@@ -288,7 +304,7 @@ public final class QEval {
 
 		V eval(CGNode n, RoundingGraph q, Map<Integer, V> memo, List<V> args, int rawVn) {
 			RoundingGraph.Node node = q.node(rawVn);
-			SymbolTable st = n.getIR().getSymbolTable();
+			SymbolTable st = code(n).ir().getSymbolTable();
 			if (node == null) {
 				if (st.isConstant(rawVn)) {
 					return dom.fromBig(constant(st, rawVn));
@@ -317,7 +333,7 @@ public final class QEval {
 			case RoundingGraph.Assign a -> eval(n, q, memo, args, a.operand());
 			case RoundingGraph.Mul m -> {
 				V l = eval(n, q, memo, args, m.left());
-				SSAInstruction def = n.getDU().getDef(vn);
+				SSAInstruction def = code(n).du().getDef(vn);
 				if (isShift(def, IShiftInstruction.Operator.SHL)) {
 					yield dom.shiftLeft(l, exponent(n, q, memo, args, m.right()));
 				}
@@ -329,7 +345,7 @@ public final class QEval {
 					V v = eval(n, q, memo, args, f);
 					num = num == null ? v : dom.mul(num, v);
 				}
-				SSAInstruction def = n.getDU().getDef(vn);
+				SSAInstruction def = code(n).du().getDef(vn);
 				if (!d.idiom() && (isShift(def, IShiftInstruction.Operator.SHR)
 						|| isShift(def, IShiftInstruction.Operator.USHR))) {
 					yield dom.shiftRight(num, exponent(n, q, memo, args, d.divisor()), d.rounds());
@@ -377,14 +393,15 @@ public final class QEval {
 		 * operand on the selected path. Merges whose shape this cannot resolve discard.
 		 */
 		private V phiMerge(CGNode n, RoundingGraph q, Map<Integer, V> memo, List<V> args, int vn) {
-			if (!(n.getDU().getDef(vn) instanceof SSAPhiInstruction phi) || phi.getNumberOfUses() != 2) {
+			Code code = code(n);
+			if (!(code.du().getDef(vn) instanceof SSAPhiInstruction phi) || phi.getNumberOfUses() != 2) {
 				throw new Discard("mergeShape");
 			}
-			SSACFG cfg = n.getIR().getControlFlowGraph();
-			ISSABasicBlock merge = blockOf(n, phi);
-			Dominators<ISSABasicBlock> dom = dominators(n);
+			SSACFG cfg = code.ir().getControlFlowGraph();
+			ISSABasicBlock merge = blockOf(code, phi);
+			Dominators<ISSABasicBlock> dom = code.dom();
 			ISSABasicBlock gb = dom.getIdom(merge);
-			SSAConditionalBranchInstruction cond = gb == null ? null : conditionalOf(gb, n.getIR());
+			SSAConditionalBranchInstruction cond = gb == null ? null : conditionalOf(gb, code.ir());
 			if (cond == null) {
 				throw new Discard("mergeNoCond");
 			}
@@ -427,12 +444,12 @@ public final class QEval {
 		 * ordinary Q value.
 		 */
 		private V guardValue(CGNode n, RoundingGraph q, Map<Integer, V> memo, List<V> args, int u) {
-			SymbolTable st = n.getIR().getSymbolTable();
+			SymbolTable st = code(n).ir().getSymbolTable();
 			if (st.isConstant(u)) {
 				return dom.fromBig(constant(st, u));
 			}
 			int neg = 0;
-			SSAInstruction def = n.getDU().getDef(u);
+			SSAInstruction def = code(n).du().getDef(u);
 			while (def instanceof com.ibm.wala.ssa.SSAUnaryOpInstruction un
 					&& un.getOpcode() == com.ibm.wala.shrike.shrikeBT.IUnaryOpInstruction.Operator.NEG) {
 				neg++;
@@ -440,7 +457,7 @@ public final class QEval {
 				if (st.isConstant(u)) {
 					break;
 				}
-				def = n.getDU().getDef(u);
+				def = code(n).du().getDef(u);
 			}
 			boolean truth;
 			if (!st.isConstant(u) && def instanceof SSABinaryOpInstruction b
@@ -476,8 +493,8 @@ public final class QEval {
 					|| op == com.ibm.wala.cast.ir.ssa.CAstBinaryOp.GT || op == com.ibm.wala.cast.ir.ssa.CAstBinaryOp.GE;
 		}
 
-		private ISSABasicBlock blockOf(CGNode n, SSAPhiInstruction phi) {
-			for (ISSABasicBlock bb : n.getIR().getControlFlowGraph()) {
+		private ISSABasicBlock blockOf(Code code, SSAPhiInstruction phi) {
+			for (ISSABasicBlock bb : code.ir().getControlFlowGraph()) {
 				for (java.util.Iterator<SSAPhiInstruction> it = bb.iteratePhis(); it.hasNext();) {
 					if (it.next() == phi) {
 						return bb;
