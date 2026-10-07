@@ -5,8 +5,9 @@
                 "id": 1,
                 "literals": [
                     "solidity",
+                    "^",
                     "0.8",
-                    ".12"
+                    ".0"
                 ],
                 "nodeType": "PragmaDirective",
                 "src": "32:23:0"
@@ -728,7 +729,8 @@
                 ],
                 "scope": 67,
                 "src": "57:104:0",
-                "usedErrors": []
+                "usedErrors": [],
+                "usedEvents": []
             },
             "15": {
                 "certora_contract_name": "Base",
@@ -1222,12 +1224,16 @@
                 ],
                 "scope": 67,
                 "src": "163:107:0",
-                "usedErrors": []
+                "usedErrors": [],
+                "usedEvents": []
             },
             "26": {
                 "certora_contract_name": "SuperChain",
                 "id": 26,
                 "name": "Base",
+                "nameLocations": [
+                    "295:4:0"
+                ],
                 "nodeType": "IdentifierPath",
                 "referencedDeclaration": 25,
                 "src": "295:4:0"
@@ -1237,6 +1243,9 @@
                     "certora_contract_name": "SuperChain",
                     "id": 26,
                     "name": "Base",
+                    "nameLocations": [
+                        "295:4:0"
+                    ],
                     "nodeType": "IdentifierPath",
                     "referencedDeclaration": 25,
                     "src": "295:4:0"
@@ -1250,6 +1259,9 @@
                 "certora_contract_name": "SuperChain",
                 "id": 28,
                 "name": "L",
+                "nameLocations": [
+                    "312:1:0"
+                ],
                 "nodeType": "IdentifierPath",
                 "referencedDeclaration": 14,
                 "src": "312:1:0"
@@ -1268,11 +1280,15 @@
             },
             "30": {
                 "certora_contract_name": "SuperChain",
+                "global": false,
                 "id": 30,
                 "libraryName": {
                     "certora_contract_name": "SuperChain",
                     "id": 28,
                     "name": "L",
+                    "nameLocations": [
+                        "312:1:0"
+                    ],
                     "nodeType": "IdentifierPath",
                     "referencedDeclaration": 14,
                     "src": "312:1:0"
@@ -1505,6 +1521,7 @@
                 "isLValue": false,
                 "isPure": false,
                 "lValueRequested": false,
+                "memberLocation": "494:1:0",
                 "memberName": "f",
                 "nodeType": "MemberAccess",
                 "referencedDeclaration": 24,
@@ -1575,6 +1592,7 @@
                     "isLValue": false,
                     "isPure": false,
                     "lValueRequested": false,
+                    "memberLocation": "494:1:0",
                     "memberName": "f",
                     "nodeType": "MemberAccess",
                     "referencedDeclaration": 24,
@@ -1591,6 +1609,7 @@
                 "isPure": false,
                 "kind": "functionCall",
                 "lValueRequested": false,
+                "nameLocations": [],
                 "names": [],
                 "nodeType": "FunctionCall",
                 "src": "488:10:0",
@@ -1650,6 +1669,7 @@
                         "isLValue": false,
                         "isPure": false,
                         "lValueRequested": false,
+                        "memberLocation": "494:1:0",
                         "memberName": "f",
                         "nodeType": "MemberAccess",
                         "referencedDeclaration": 24,
@@ -1666,6 +1686,7 @@
                     "isPure": false,
                     "kind": "functionCall",
                     "lValueRequested": false,
+                    "nameLocations": [],
                     "names": [],
                     "nodeType": "FunctionCall",
                     "src": "488:10:0",
@@ -1681,13 +1702,14 @@
                 "isLValue": false,
                 "isPure": false,
                 "lValueRequested": false,
+                "memberLocation": "499:4:0",
                 "memberName": "half",
                 "nodeType": "MemberAccess",
                 "referencedDeclaration": 13,
                 "src": "488:15:0",
                 "typeDescriptions": {
                     "certora_contract_name": "SuperChain",
-                    "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                    "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                     "typeString": "function (uint256) pure returns (uint256)"
                 }
             },
@@ -1743,6 +1765,7 @@
                             "isLValue": false,
                             "isPure": false,
                             "lValueRequested": false,
+                            "memberLocation": "494:1:0",
                             "memberName": "f",
                             "nodeType": "MemberAccess",
                             "referencedDeclaration": 24,
@@ -1759,6 +1782,7 @@
                         "isPure": false,
                         "kind": "functionCall",
                         "lValueRequested": false,
+                        "nameLocations": [],
                         "names": [],
                         "nodeType": "FunctionCall",
                         "src": "488:10:0",
@@ -1774,13 +1798,14 @@
                     "isLValue": false,
                     "isPure": false,
                     "lValueRequested": false,
+                    "memberLocation": "499:4:0",
                     "memberName": "half",
                     "nodeType": "MemberAccess",
                     "referencedDeclaration": 13,
                     "src": "488:15:0",
                     "typeDescriptions": {
                         "certora_contract_name": "SuperChain",
-                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                         "typeString": "function (uint256) pure returns (uint256)"
                     }
                 },
@@ -1790,6 +1815,7 @@
                 "isPure": false,
                 "kind": "functionCall",
                 "lValueRequested": false,
+                "nameLocations": [],
                 "names": [],
                 "nodeType": "FunctionCall",
                 "src": "488:17:0",
@@ -1854,6 +1880,7 @@
                                 "isLValue": false,
                                 "isPure": false,
                                 "lValueRequested": false,
+                                "memberLocation": "494:1:0",
                                 "memberName": "f",
                                 "nodeType": "MemberAccess",
                                 "referencedDeclaration": 24,
@@ -1870,6 +1897,7 @@
                             "isPure": false,
                             "kind": "functionCall",
                             "lValueRequested": false,
+                            "nameLocations": [],
                             "names": [],
                             "nodeType": "FunctionCall",
                             "src": "488:10:0",
@@ -1885,13 +1913,14 @@
                         "isLValue": false,
                         "isPure": false,
                         "lValueRequested": false,
+                        "memberLocation": "499:4:0",
                         "memberName": "half",
                         "nodeType": "MemberAccess",
                         "referencedDeclaration": 13,
                         "src": "488:15:0",
                         "typeDescriptions": {
                             "certora_contract_name": "SuperChain",
-                            "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                            "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                             "typeString": "function (uint256) pure returns (uint256)"
                         }
                     },
@@ -1901,6 +1930,7 @@
                     "isPure": false,
                     "kind": "functionCall",
                     "lValueRequested": false,
+                    "nameLocations": [],
                     "names": [],
                     "nodeType": "FunctionCall",
                     "src": "488:17:0",
@@ -1976,6 +2006,7 @@
                                         "isLValue": false,
                                         "isPure": false,
                                         "lValueRequested": false,
+                                        "memberLocation": "494:1:0",
                                         "memberName": "f",
                                         "nodeType": "MemberAccess",
                                         "referencedDeclaration": 24,
@@ -1992,6 +2023,7 @@
                                     "isPure": false,
                                     "kind": "functionCall",
                                     "lValueRequested": false,
+                                    "nameLocations": [],
                                     "names": [],
                                     "nodeType": "FunctionCall",
                                     "src": "488:10:0",
@@ -2007,13 +2039,14 @@
                                 "isLValue": false,
                                 "isPure": false,
                                 "lValueRequested": false,
+                                "memberLocation": "499:4:0",
                                 "memberName": "half",
                                 "nodeType": "MemberAccess",
                                 "referencedDeclaration": 13,
                                 "src": "488:15:0",
                                 "typeDescriptions": {
                                     "certora_contract_name": "SuperChain",
-                                    "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                                    "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                                     "typeString": "function (uint256) pure returns (uint256)"
                                 }
                             },
@@ -2023,6 +2056,7 @@
                             "isPure": false,
                             "kind": "functionCall",
                             "lValueRequested": false,
+                            "nameLocations": [],
                             "names": [],
                             "nodeType": "FunctionCall",
                             "src": "488:17:0",
@@ -2104,6 +2138,7 @@
                                             "isLValue": false,
                                             "isPure": false,
                                             "lValueRequested": false,
+                                            "memberLocation": "494:1:0",
                                             "memberName": "f",
                                             "nodeType": "MemberAccess",
                                             "referencedDeclaration": 24,
@@ -2120,6 +2155,7 @@
                                         "isPure": false,
                                         "kind": "functionCall",
                                         "lValueRequested": false,
+                                        "nameLocations": [],
                                         "names": [],
                                         "nodeType": "FunctionCall",
                                         "src": "488:10:0",
@@ -2135,13 +2171,14 @@
                                     "isLValue": false,
                                     "isPure": false,
                                     "lValueRequested": false,
+                                    "memberLocation": "499:4:0",
                                     "memberName": "half",
                                     "nodeType": "MemberAccess",
                                     "referencedDeclaration": 13,
                                     "src": "488:15:0",
                                     "typeDescriptions": {
                                         "certora_contract_name": "SuperChain",
-                                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                                         "typeString": "function (uint256) pure returns (uint256)"
                                     }
                                 },
@@ -2151,6 +2188,7 @@
                                 "isPure": false,
                                 "kind": "functionCall",
                                 "lValueRequested": false,
+                                "nameLocations": [],
                                 "names": [],
                                 "nodeType": "FunctionCall",
                                 "src": "488:17:0",
@@ -2517,6 +2555,7 @@
                 "isLValue": false,
                 "isPure": false,
                 "lValueRequested": false,
+                "memberLocation": "669:1:0",
                 "memberName": "f",
                 "nodeType": "MemberAccess",
                 "referencedDeclaration": 24,
@@ -2587,6 +2626,7 @@
                     "isLValue": false,
                     "isPure": false,
                     "lValueRequested": false,
+                    "memberLocation": "669:1:0",
                     "memberName": "f",
                     "nodeType": "MemberAccess",
                     "referencedDeclaration": 24,
@@ -2603,6 +2643,7 @@
                 "isPure": false,
                 "kind": "functionCall",
                 "lValueRequested": false,
+                "nameLocations": [],
                 "names": [],
                 "nodeType": "FunctionCall",
                 "src": "663:10:0",
@@ -2698,6 +2739,7 @@
                         "isLValue": false,
                         "isPure": false,
                         "lValueRequested": false,
+                        "memberLocation": "669:1:0",
                         "memberName": "f",
                         "nodeType": "MemberAccess",
                         "referencedDeclaration": 24,
@@ -2714,6 +2756,7 @@
                     "isPure": false,
                     "kind": "functionCall",
                     "lValueRequested": false,
+                    "nameLocations": [],
                     "names": [],
                     "nodeType": "FunctionCall",
                     "src": "663:10:0",
@@ -2763,13 +2806,14 @@
                 "isLValue": false,
                 "isPure": false,
                 "lValueRequested": false,
+                "memberLocation": "692:4:0",
                 "memberName": "half",
                 "nodeType": "MemberAccess",
                 "referencedDeclaration": 13,
                 "src": "690:6:0",
                 "typeDescriptions": {
                     "certora_contract_name": "SuperChain",
-                    "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                    "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                     "typeString": "function (uint256) pure returns (uint256)"
                 }
             },
@@ -2798,13 +2842,14 @@
                     "isLValue": false,
                     "isPure": false,
                     "lValueRequested": false,
+                    "memberLocation": "692:4:0",
                     "memberName": "half",
                     "nodeType": "MemberAccess",
                     "referencedDeclaration": 13,
                     "src": "690:6:0",
                     "typeDescriptions": {
                         "certora_contract_name": "SuperChain",
-                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                         "typeString": "function (uint256) pure returns (uint256)"
                     }
                 },
@@ -2814,6 +2859,7 @@
                 "isPure": false,
                 "kind": "functionCall",
                 "lValueRequested": false,
+                "nameLocations": [],
                 "names": [],
                 "nodeType": "FunctionCall",
                 "src": "690:8:0",
@@ -2851,13 +2897,14 @@
                         "isLValue": false,
                         "isPure": false,
                         "lValueRequested": false,
+                        "memberLocation": "692:4:0",
                         "memberName": "half",
                         "nodeType": "MemberAccess",
                         "referencedDeclaration": 13,
                         "src": "690:6:0",
                         "typeDescriptions": {
                             "certora_contract_name": "SuperChain",
-                            "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                            "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                             "typeString": "function (uint256) pure returns (uint256)"
                         }
                     },
@@ -2867,6 +2914,7 @@
                     "isPure": false,
                     "kind": "functionCall",
                     "lValueRequested": false,
+                    "nameLocations": [],
                     "names": [],
                     "nodeType": "FunctionCall",
                     "src": "690:8:0",
@@ -2973,6 +3021,7 @@
                                 "isLValue": false,
                                 "isPure": false,
                                 "lValueRequested": false,
+                                "memberLocation": "669:1:0",
                                 "memberName": "f",
                                 "nodeType": "MemberAccess",
                                 "referencedDeclaration": 24,
@@ -2989,6 +3038,7 @@
                             "isPure": false,
                             "kind": "functionCall",
                             "lValueRequested": false,
+                            "nameLocations": [],
                             "names": [],
                             "nodeType": "FunctionCall",
                             "src": "663:10:0",
@@ -3029,13 +3079,14 @@
                                 "isLValue": false,
                                 "isPure": false,
                                 "lValueRequested": false,
+                                "memberLocation": "692:4:0",
                                 "memberName": "half",
                                 "nodeType": "MemberAccess",
                                 "referencedDeclaration": 13,
                                 "src": "690:6:0",
                                 "typeDescriptions": {
                                     "certora_contract_name": "SuperChain",
-                                    "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                                    "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                                     "typeString": "function (uint256) pure returns (uint256)"
                                 }
                             },
@@ -3045,6 +3096,7 @@
                             "isPure": false,
                             "kind": "functionCall",
                             "lValueRequested": false,
+                            "nameLocations": [],
                             "names": [],
                             "nodeType": "FunctionCall",
                             "src": "690:8:0",
@@ -3154,6 +3206,7 @@
                                     "isLValue": false,
                                     "isPure": false,
                                     "lValueRequested": false,
+                                    "memberLocation": "669:1:0",
                                     "memberName": "f",
                                     "nodeType": "MemberAccess",
                                     "referencedDeclaration": 24,
@@ -3170,6 +3223,7 @@
                                 "isPure": false,
                                 "kind": "functionCall",
                                 "lValueRequested": false,
+                                "nameLocations": [],
                                 "names": [],
                                 "nodeType": "FunctionCall",
                                 "src": "663:10:0",
@@ -3210,13 +3264,14 @@
                                     "isLValue": false,
                                     "isPure": false,
                                     "lValueRequested": false,
+                                    "memberLocation": "692:4:0",
                                     "memberName": "half",
                                     "nodeType": "MemberAccess",
                                     "referencedDeclaration": 13,
                                     "src": "690:6:0",
                                     "typeDescriptions": {
                                         "certora_contract_name": "SuperChain",
-                                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                                         "typeString": "function (uint256) pure returns (uint256)"
                                     }
                                 },
@@ -3226,6 +3281,7 @@
                                 "isPure": false,
                                 "kind": "functionCall",
                                 "lValueRequested": false,
+                                "nameLocations": [],
                                 "names": [],
                                 "nodeType": "FunctionCall",
                                 "src": "690:8:0",
@@ -3344,6 +3400,9 @@
                             "certora_contract_name": "SuperChain",
                             "id": 26,
                             "name": "Base",
+                            "nameLocations": [
+                                "295:4:0"
+                            ],
                             "nodeType": "IdentifierPath",
                             "referencedDeclaration": 25,
                             "src": "295:4:0"
@@ -3369,11 +3428,15 @@
                 "nodes": [
                     {
                         "certora_contract_name": "SuperChain",
+                        "global": false,
                         "id": 30,
                         "libraryName": {
                             "certora_contract_name": "SuperChain",
                             "id": 28,
                             "name": "L",
+                            "nameLocations": [
+                                "312:1:0"
+                            ],
                             "nodeType": "IdentifierPath",
                             "referencedDeclaration": 14,
                             "src": "312:1:0"
@@ -3457,6 +3520,7 @@
                                                     "isLValue": false,
                                                     "isPure": false,
                                                     "lValueRequested": false,
+                                                    "memberLocation": "494:1:0",
                                                     "memberName": "f",
                                                     "nodeType": "MemberAccess",
                                                     "referencedDeclaration": 24,
@@ -3473,6 +3537,7 @@
                                                 "isPure": false,
                                                 "kind": "functionCall",
                                                 "lValueRequested": false,
+                                                "nameLocations": [],
                                                 "names": [],
                                                 "nodeType": "FunctionCall",
                                                 "src": "488:10:0",
@@ -3488,13 +3553,14 @@
                                             "isLValue": false,
                                             "isPure": false,
                                             "lValueRequested": false,
+                                            "memberLocation": "499:4:0",
                                             "memberName": "half",
                                             "nodeType": "MemberAccess",
                                             "referencedDeclaration": 13,
                                             "src": "488:15:0",
                                             "typeDescriptions": {
                                                 "certora_contract_name": "SuperChain",
-                                                "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                                                "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                                                 "typeString": "function (uint256) pure returns (uint256)"
                                             }
                                         },
@@ -3504,6 +3570,7 @@
                                         "isPure": false,
                                         "kind": "functionCall",
                                         "lValueRequested": false,
+                                        "nameLocations": [],
                                         "names": [],
                                         "nodeType": "FunctionCall",
                                         "src": "488:17:0",
@@ -3713,6 +3780,7 @@
                                             "isLValue": false,
                                             "isPure": false,
                                             "lValueRequested": false,
+                                            "memberLocation": "669:1:0",
                                             "memberName": "f",
                                             "nodeType": "MemberAccess",
                                             "referencedDeclaration": 24,
@@ -3729,6 +3797,7 @@
                                         "isPure": false,
                                         "kind": "functionCall",
                                         "lValueRequested": false,
+                                        "nameLocations": [],
                                         "names": [],
                                         "nodeType": "FunctionCall",
                                         "src": "663:10:0",
@@ -3769,13 +3838,14 @@
                                             "isLValue": false,
                                             "isPure": false,
                                             "lValueRequested": false,
+                                            "memberLocation": "692:4:0",
                                             "memberName": "half",
                                             "nodeType": "MemberAccess",
                                             "referencedDeclaration": 13,
                                             "src": "690:6:0",
                                             "typeDescriptions": {
                                                 "certora_contract_name": "SuperChain",
-                                                "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                                                "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                                                 "typeString": "function (uint256) pure returns (uint256)"
                                             }
                                         },
@@ -3785,6 +3855,7 @@
                                         "isPure": false,
                                         "kind": "functionCall",
                                         "lValueRequested": false,
+                                        "nameLocations": [],
                                         "names": [],
                                         "nodeType": "FunctionCall",
                                         "src": "690:8:0",
@@ -3898,7 +3969,8 @@
                 ],
                 "scope": 67,
                 "src": "272:435:0",
-                "usedErrors": []
+                "usedErrors": [],
+                "usedEvents": []
             },
             "67": {
                 "absolutePath": "./test/data/SuperChain/SuperChain.sol",
@@ -3921,8 +3993,9 @@
                         "id": 1,
                         "literals": [
                             "solidity",
+                            "^",
                             "0.8",
-                            ".12"
+                            ".0"
                         ],
                         "nodeType": "PragmaDirective",
                         "src": "32:23:0"
@@ -4106,7 +4179,8 @@
                         ],
                         "scope": 67,
                         "src": "57:104:0",
-                        "usedErrors": []
+                        "usedErrors": [],
+                        "usedEvents": []
                     },
                     {
                         "abstract": false,
@@ -4249,7 +4323,8 @@
                         ],
                         "scope": 67,
                         "src": "163:107:0",
-                        "usedErrors": []
+                        "usedErrors": [],
+                        "usedEvents": []
                     },
                     {
                         "abstract": false,
@@ -4259,6 +4334,9 @@
                                     "certora_contract_name": "SuperChain",
                                     "id": 26,
                                     "name": "Base",
+                                    "nameLocations": [
+                                        "295:4:0"
+                                    ],
                                     "nodeType": "IdentifierPath",
                                     "referencedDeclaration": 25,
                                     "src": "295:4:0"
@@ -4284,11 +4362,15 @@
                         "nodes": [
                             {
                                 "certora_contract_name": "SuperChain",
+                                "global": false,
                                 "id": 30,
                                 "libraryName": {
                                     "certora_contract_name": "SuperChain",
                                     "id": 28,
                                     "name": "L",
+                                    "nameLocations": [
+                                        "312:1:0"
+                                    ],
                                     "nodeType": "IdentifierPath",
                                     "referencedDeclaration": 14,
                                     "src": "312:1:0"
@@ -4372,6 +4454,7 @@
                                                             "isLValue": false,
                                                             "isPure": false,
                                                             "lValueRequested": false,
+                                                            "memberLocation": "494:1:0",
                                                             "memberName": "f",
                                                             "nodeType": "MemberAccess",
                                                             "referencedDeclaration": 24,
@@ -4388,6 +4471,7 @@
                                                         "isPure": false,
                                                         "kind": "functionCall",
                                                         "lValueRequested": false,
+                                                        "nameLocations": [],
                                                         "names": [],
                                                         "nodeType": "FunctionCall",
                                                         "src": "488:10:0",
@@ -4403,13 +4487,14 @@
                                                     "isLValue": false,
                                                     "isPure": false,
                                                     "lValueRequested": false,
+                                                    "memberLocation": "499:4:0",
                                                     "memberName": "half",
                                                     "nodeType": "MemberAccess",
                                                     "referencedDeclaration": 13,
                                                     "src": "488:15:0",
                                                     "typeDescriptions": {
                                                         "certora_contract_name": "SuperChain",
-                                                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                                                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                                                         "typeString": "function (uint256) pure returns (uint256)"
                                                     }
                                                 },
@@ -4419,6 +4504,7 @@
                                                 "isPure": false,
                                                 "kind": "functionCall",
                                                 "lValueRequested": false,
+                                                "nameLocations": [],
                                                 "names": [],
                                                 "nodeType": "FunctionCall",
                                                 "src": "488:17:0",
@@ -4628,6 +4714,7 @@
                                                     "isLValue": false,
                                                     "isPure": false,
                                                     "lValueRequested": false,
+                                                    "memberLocation": "669:1:0",
                                                     "memberName": "f",
                                                     "nodeType": "MemberAccess",
                                                     "referencedDeclaration": 24,
@@ -4644,6 +4731,7 @@
                                                 "isPure": false,
                                                 "kind": "functionCall",
                                                 "lValueRequested": false,
+                                                "nameLocations": [],
                                                 "names": [],
                                                 "nodeType": "FunctionCall",
                                                 "src": "663:10:0",
@@ -4684,13 +4772,14 @@
                                                     "isLValue": false,
                                                     "isPure": false,
                                                     "lValueRequested": false,
+                                                    "memberLocation": "692:4:0",
                                                     "memberName": "half",
                                                     "nodeType": "MemberAccess",
                                                     "referencedDeclaration": 13,
                                                     "src": "690:6:0",
                                                     "typeDescriptions": {
                                                         "certora_contract_name": "SuperChain",
-                                                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                                                        "typeIdentifier": "t_function_internal_pure$_t_uint256_$returns$_t_uint256_$attached_to$_t_uint256_$",
                                                         "typeString": "function (uint256) pure returns (uint256)"
                                                     }
                                                 },
@@ -4700,6 +4789,7 @@
                                                 "isPure": false,
                                                 "kind": "functionCall",
                                                 "lValueRequested": false,
+                                                "nameLocations": [],
                                                 "names": [],
                                                 "nodeType": "FunctionCall",
                                                 "src": "690:8:0",
@@ -4813,7 +4903,8 @@
                         ],
                         "scope": 67,
                         "src": "272:435:0",
-                        "usedErrors": []
+                        "usedErrors": [],
+                        "usedEvents": []
                     }
                 ],
                 "src": "32:676:0"
