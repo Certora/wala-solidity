@@ -106,12 +106,17 @@ public class RoundingAnalysis {
 		return r;
 	}
 
+	/** Ablation switch for the evaluation: {@code -DdisablePositions=true} turns off
+	 *  position inference, so values that only name a location are analyzed as amounts. */
+	private static final boolean DISABLE_POSITIONS = Boolean.getBoolean("disablePositions");
+
 	/** Phase 1's graph of this node's operations (cached; direction-independent). */
 	public RoundingGraph getGraph(CGNode n) {
 		RoundingGraph g = graphCache.get(n);
 		if (g == null) {
 			Feasibility f = new Feasibility(n, CG, PA);
-			g = new RoundingGraphBuilder(n, getRecognition(n), f, vn -> positions.isPosition(n, vn)).build();
+			g = new RoundingGraphBuilder(n, getRecognition(n), f,
+					DISABLE_POSITIONS ? vn -> false : vn -> positions.isPosition(n, vn)).build();
 			graphCache.put(n, g);
 		}
 		return g;
