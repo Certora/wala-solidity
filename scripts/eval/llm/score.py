@@ -6,11 +6,16 @@ that consists of exactly one of the four words (case-insensitive, punctuation
 stripped). A transcript with no such line scores as 'unparsed' - it is counted
 and listed, never interpreted.
 
-Output: one row per (model, condition, group): n, model-vs-truth, tool-vs-truth,
-model-vs-tool agreement; plus per-item CSV for the artifact.
+Outcome of one answer against the truth, also fixed in advance:
+  correct          the answer equals the truth
+  refusal          the answer is Indeterminate and the truth is not
+  wrong-direction  a definite answer (Exact/Down/Up) that is not the truth
+  unparsed         no verdict line
+The tool's verdicts (from the manifest) are scored by the same rule.
 
 Usage: score.py <manifest.json> <transcripts-dir> <out-csv>
 """
+import collections
 import csv
 import json
 import os
@@ -20,6 +25,8 @@ import sys
 WORDS = {'exact': 'Exact', 'down': 'Down', 'up': 'Up',
          'indeterminate': 'Indeterminate', 'indet': 'Indeterminate'}
 TOOL = {'Neither': 'Exact', 'Down': 'Down', 'Up': 'Up', 'Inconsistent': 'Indeterminate'}
+GROUPS = ('name', 'review', 'witness', 'exploit')
+OUTCOMES = ('correct', 'refusal', 'wrong-direction', 'unparsed')
 
 
 def parse(path):
@@ -27,57 +34,74 @@ def parse(path):
         w = re.sub(r'[^a-z]', '', line.strip().lower())
         if w in WORDS:
             return WORDS[w]
-        if line.strip():
-            # first non-empty line is not a bare verdict; keep scanning a few more
-            continue
     return 'unparsed'
 
 
-def main():
-    manifest, tdir, outcsv = sys.argv[1], sys.argv[2], sys.argv[3]
+def outcome(answer, truth):
+    if answer == 'unparsed':
+        return 'unparsed'
+    if answer == truth:
+        return 'correct'
+    if answer == 'Indeterminate':
+        return 'refusal'
+    return 'wrong-direction'
+
+
+def compute(manifest, tdir):
+    """Returns dict(rows=[per-answer dicts], by_outcome={(system, cond): Counter},
+    by_group={(system, cond): {group: correct-count}}, group_sizes={group: n})."""
     items = {i['id']: i for i in json.load(open(manifest))}
     rows = []
+    for it in items.values():
+        tool = TOOL.get(it['roundabout'], it['roundabout'])
+        rows.append(dict(system='tool', cond='-', group=it['group'], id=it['id'],
+                         truth=it['label'], answer=tool))
     for model in sorted(os.listdir(tdir)):
         for cond in ('named', 'anon'):
             d = os.path.join(tdir, model, cond)
             if not os.path.isdir(d):
                 continue
             for f in sorted(os.listdir(d)):
-                if not f.endswith('.txt') or f.endswith('.err.txt'):
+                if not f.endswith('.txt'):
                     continue
-                iid = f[:-4]
-                it = items.get(iid)
-                if not it:
-                    continue
-                ans = parse(os.path.join(d, f))
-                rows.append(dict(model=model, cond=cond, group=it['group'], id=iid,
-                                 truth=it['label'], tool=TOOL.get(it['roundabout'], it['roundabout']),
-                                 llm=ans))
+                it = items.get(f[:-4])
+                if it:
+                    rows.append(dict(system=model, cond=cond, group=it['group'], id=it['id'],
+                                     truth=it['label'], answer=parse(os.path.join(d, f))))
+    for r in rows:
+        r['outcome'] = outcome(r['answer'], r['truth'])
+    by_outcome = collections.defaultdict(collections.Counter)
+    by_group = collections.defaultdict(collections.Counter)
+    for r in rows:
+        key = (r['system'], r['cond'])
+        by_outcome[key][r['outcome']] += 1
+        if r['outcome'] == 'correct':
+            by_group[key][r['group']] += 1
+    sizes = collections.Counter(i['group'] for i in items.values())
+    # every system must have answered every item, or the comparison is not like for like
+    for key, c in by_outcome.items():
+        if sum(c.values()) != len(items):
+            raise SystemExit(f"{key} has {sum(c.values())} answers for {len(items)} items")
+    return dict(rows=rows, by_outcome=dict(by_outcome), by_group=dict(by_group),
+                group_sizes=dict(sizes), items=len(items))
+
+
+def main():
+    manifest, tdir, outcsv = sys.argv[1], sys.argv[2], sys.argv[3]
+    r = compute(manifest, tdir)
     with open(outcsv, 'w', newline='') as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        w = csv.DictWriter(f, fieldnames=list(r['rows'][0].keys()))
         w.writeheader()
-        w.writerows(rows)
-
-    def agg(sel):
-        n = len(sel)
-        return (n,
-                sum(1 for r in sel if r['llm'] == r['truth']),
-                sum(1 for r in sel if r['tool'] == r['truth']),
-                sum(1 for r in sel if r['llm'] == r['tool']),
-                sum(1 for r in sel if r['llm'] == 'unparsed'))
-
-    print(f"{'model':24s} {'cond':6s} {'group':8s} {'n':>3} {'llm=truth':>9} "
-          f"{'tool=truth':>10} {'llm=tool':>8} {'unparsed':>8}")
-    for model in sorted({r['model'] for r in rows}):
-        for cond in ('named', 'anon'):
-            for group in ('name', 'review', 'witness', 'exploit'):
-                sel = [r for r in rows if r['model'] == model and r['cond'] == cond
-                       and r['group'] == group]
-                if not sel:
-                    continue
-                n, lt, tt, lo, unp = agg(sel)
-                print(f"{model:24s} {cond:6s} {group:8s} {n:3d} {lt:9d} {tt:10d} {lo:8d} {unp:8d}")
-    print(f"\nper-item rows written to {outcsv}")
+        w.writerows(r['rows'])
+    print(f"{'system':18s} {'cond':6s} " + " ".join(f"{o:>15s}" for o in OUTCOMES))
+    for key in sorted(r['by_outcome']):
+        print(f"{key[0]:18s} {key[1]:6s} " +
+              " ".join(f"{r['by_outcome'][key][o]:15d}" for o in OUTCOMES))
+    print(f"\ncorrect by group (sizes {r['group_sizes']}):")
+    for key in sorted(r['by_group']):
+        print(f"{key[0]:18s} {key[1]:6s} " +
+              " ".join(f"{g}={r['by_group'][key][g]}" for g in GROUPS))
+    print(f"\nper-answer rows written to {outcsv}")
 
 
 if __name__ == '__main__':
