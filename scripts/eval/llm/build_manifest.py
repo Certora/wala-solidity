@@ -42,9 +42,10 @@ for f in sorted(os.listdir(jdir)):
         if not m or ':' not in pos:
             continue
         fn, path = m.group(1), pos.rsplit(':', 1)[0]
-        ret = md.get('return')
-        if isinstance(ret, dict):
-            ret = 'tuple'
+        ret = str(md.get('return'))
+        if ret.startswith('{'):  # tuple returns are pre-rendered strings in the JSON
+            vals = set(re.findall(r'>=(\w+)', ret))
+            ret = vals.pop() if len(vals) == 1 else 'tuple'  # uniform tuple = that verdict
         # all-exact contexts only, consistent with the name check
         if all(p.get('rounding') == 'Neither' for p in md.get('parameters', [])):
             meta.setdefault((test, fn), (path, ret))
