@@ -45,6 +45,7 @@ for r in set(open(ROOTS).read().splitlines()):
     verdicts[(test, m.group(1))].add(ret)
 
 ok = viol = nov = indet2 = indet1 = skipped = 0
+indet1_fns, indet2_fns = set(), set()
 viols = []
 indet_confirmed = []
 for f in sorted(os.listdir(DIR)):
@@ -84,9 +85,11 @@ for f in sorted(os.listdir(DIR)):
             if vs == {'Inconsistent'}:
                 if above > 0 and below > 0:
                     indet2 += 1
+                    indet2_fns.add((test, fn))
                     indet_confirmed.append((test, fn, above, below, equal))
                 else:
                     indet1 += 1
+                    indet1_fns.add((test, fn))
         else:
             viol += 1
             viols.append((test, fn, sorted(vs), above, below, equal, amb, disc))
@@ -103,7 +106,8 @@ if missing or extra:
     raise SystemExit(1)
 print(f"coverage: {len(seen_tags)}/{len(expected)} corpus configurations")
 print(f"functions checked: {ok + viol}  OK: {ok}  VIOLATIONS: {viol}")
-print(f"  Indet functions: two-sided confirmed {indet2}, one-sided {indet1}")
+print(f"  Indet: two-sided confirmed {len(indet2_fns)} functions ({indet2} rows), "
+      f"one-sided {len(indet1_fns)} functions ({indet1} rows)")
 print(f"  rows with no verdict match: {nov}, fully discarded: {skipped}")
 if viols:
     print("\nVIOLATIONS (test, function, verdicts, above, below, equal, ambiguous, discarded):")
