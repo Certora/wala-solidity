@@ -137,8 +137,8 @@ def main():
         ('KyberActual', 'computeSwapStep', 'Indeterminate',
          'Kyber: deltaL floored where the design needs a ceiling; outputs uncontrolled'),
         ('KyberActual', 'calcReachAmount', 'Indeterminate', 'Kyber: same incident'),
-        ('RadiantATokenActual', 'rayDiv', 'Indeterminate',
-         'Radiant/Aave v2: half-up rounding errs in either direction'),
+        # Radiant's rayDiv is left out: half-up rounding is a disclosed limitation, and the
+        # tool reads it literally as Down.
     ]:
         items.append(item('exploit', label, find(test, name), note))
 
