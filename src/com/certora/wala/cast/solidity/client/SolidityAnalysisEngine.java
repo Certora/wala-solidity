@@ -172,9 +172,13 @@ public abstract class SolidityAnalysisEngine<A> extends AbstractAnalysisEngine<I
 									return ms.stream().filter(m -> m != null)
 											.filter(m -> {
 												IClass mc = cha.lookupClass(((TypedCodeBody)m.getDeclaringClass()).getSelf());
-												return ms.stream().filter(o -> o != null).anyMatch(o -> {
-													IClass oc = cha.lookupClass(((TypedCodeBody)o.getDeclaringClass()).getSelf());										
-													return o!=m && !(oc.getAllImplementedInterfaces().contains(mc) || cha.isAssignableFrom(mc, oc));
+												// keep m only if no other candidate overrides it (is declared in a
+												// subtype of m's contract): the most-derived override, as Solidity
+												// dispatches. The test used to be inverted, which kept overridden
+												// middle classes and left supers.get(0) to pick in hash order.
+												return ms.stream().filter(o -> o != null).noneMatch(o -> {
+													IClass oc = cha.lookupClass(((TypedCodeBody)o.getDeclaringClass()).getSelf());
+													return o!=m && (oc.getAllImplementedInterfaces().contains(mc) || cha.isAssignableFrom(mc, oc));
 												});
 											}).toList();
 								}
