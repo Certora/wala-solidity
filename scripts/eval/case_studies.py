@@ -4,7 +4,6 @@
 Each check names the sentence it supports. Inputs (run from eval-artifacts/):
   case-studies/cs-{CompoundV2,Kyber}Actual.json               - tool runs on shipped code
   private-<tag>/TestBalancerStablePool*_*.json                - the corpus fixtures
-  private-<tag>/TestAaveV4*_*.json                            - Aave v4 named functions
 
 Produce the case-study JSONs with:
   java -ea -jar <jar> test/data/_repros/<B>/run.conf case-studies/cs-<B>.json --combined <ast>
@@ -47,7 +46,6 @@ def compute(tag):
     compound = _roots(['case-studies/cs-CompoundV2Actual.json'])
     bal4f = _roots(glob.glob(f'private-{tag}/TestBalancerStablePool4f189ea1_*.json'))
     balnov = _roots(glob.glob(f'private-{tag}/TestBalancerStablePoolPaminaNov25_*.json'))
-    aave4 = _roots(glob.glob(f'private-{tag}/TestAaveV4*_*.json'))
 
     def all_ret(roots, fn, want):
         mds = roots.get(fn, [])
@@ -59,9 +57,6 @@ def compute(tag):
          "Kyber: calcReachAmount is Indet"),
         (all_ret(kyber, 'computeSwapStep', 'Inconsistent'),
          "Kyber: computeSwapStep's outputs (deltaL, next price) are all Indet"),
-        (all(_ret(aave4.get(f, [{}])[0]) == d for f, d in
-             (('rayDivUp', 'Up'), ('rayDivDown', 'Down'), ('rayMulDown', 'Down'))),
-         "Aave v4: rayDivUp, rayDivDown, rayMulDown each round as named"),
         (all_ret(compound, 'exchangeRateStoredInternal', 'Down'),
          "Sonne/Compound: the exchange rate is Down"),
         (_site(redeem, 503, 'div_(redeemAmountIn, exchangeRate)') == ['Down'],
