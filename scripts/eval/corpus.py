@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The corpus manifest: the single source of truth for the 21 protocol configurations.
+"""The corpus manifest: the single source of truth for the 20 protocol configurations.
 
 Every batch runner and checker iterates THIS list and fails loudly on any mismatch;
 nothing discovers fixtures from the filesystem. Paths are relative to the private
@@ -10,8 +10,6 @@ suite environment's root (the roundabout-tests overlay).
 CORPUS = [
     ("TestAaveV3PoolInstanceSanity", "test/data/AaveV3/PoolInstance",
      "PoolInstance_sanity.conf", "ast/.asts.json.bz2"),
-    ("TestAaveV3PoolInstanceBuiltin", "test/data/AaveV3/PoolInstance",
-     "PoolInstance_builtin_assertions.conf", "ast/.asts.json.bz2"),
     ("TestAaveV4HubValidState", "test/data/AaveV4/HubValidState",
      "HubValidState.conf", "ast/.asts.json.bz2"),
     ("TestAaveV4Liquidation", "test/data/AaveV4/Liquidation",
@@ -53,8 +51,39 @@ CORPUS = [
 ]
 
 PROT = {t for t, _, _, _ in CORPUS}
-assert len(CORPUS) == 21, f"corpus manifest must list 21 configurations, has {len(CORPUS)}"
-assert len(PROT) == 21, "duplicate test prefixes in the manifest"
+assert len(CORPUS) == 20, f"corpus manifest must list 20 configurations, has {len(CORPUS)}"
+assert len(PROT) == 20, "duplicate test prefixes in the manifest"
+
+# Suite tests that run a corpus code base but are deliberately not in the corpus. They
+# are neither corpus configurations nor synthetic unit tests.
+EXCLUDED = {
+    "TestAaveV3PoolInstanceBuiltin":
+        "same code and entry points as TestAaveV3PoolInstanceSanity (a second Certora spec "
+        "over PoolInstance); RoundAbout's results for the two are byte-identical",
+}
+assert not set(EXCLUDED) & PROT
+
+# The protocol each configuration belongs to: several configurations analyze different
+# parts or versions of one protocol.
+PROTOCOL = {
+    "TestAaveV3PoolInstanceSanity": "Aave v3",
+    "TestAaveV4HubValidState": "Aave v4", "TestAaveV4Liquidation": "Aave v4",
+    "TestBalancerStablePool4f189ea1": "Balancer", "TestBalancerStablePoolPaminaNov25": "Balancer",
+    "TestCorkAuxiliary": "Cork",
+    "TestCozyEuler": "Cozy",
+    "TestEigenLayer": "EigenLayer",
+    "TestEnsEthRegistrar": "ENS",
+    "TestEulerEarn": "Euler Earn",
+    "TestGhoGsmOptimality": "GHO",
+    "TestInfiniFiMintController": "InfiniFi",
+    "TestMezzanine": "Mezzanine",
+    "TestMorphoMidnight": "Morpho", "TestMorphoSharePrice": "Morpho",
+    "TestRoycoAccountant": "Royco",
+    "TestSaturnDollar": "Saturn Dollar",
+    "TestTokemakVault": "Tokemak", "TestTokemakStrategy": "Tokemak",
+    "TestVedaBoring": "Veda",
+}
+assert set(PROTOCOL) == PROT, "every configuration needs a protocol"
 
 
 def tag(test):
