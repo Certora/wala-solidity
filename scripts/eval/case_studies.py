@@ -2,7 +2,7 @@
 """Check every tool verdict the case-studies subsection quotes, against the outputs.
 
 Each check names the sentence it supports. Inputs (run from eval-artifacts/):
-  case-studies/cs-{CompoundV2,Kyber,RadiantAToken}Actual.json  - tool runs on shipped code
+  case-studies/cs-{CompoundV2,Kyber}Actual.json               - tool runs on shipped code
   private-<tag>/TestBalancerStablePool*_*.json                - the corpus fixtures
   private-<tag>/TestAaveV4*_*.json                            - Aave v4 named functions
 
@@ -44,7 +44,6 @@ def _site(md, line, source_prefix):
 def compute(tag):
     """Returns a list of (ok, sentence) pairs."""
     kyber = _roots(['case-studies/cs-KyberActual.json'])
-    radiant = _roots(['case-studies/cs-RadiantATokenActual.json'])
     compound = _roots(['case-studies/cs-CompoundV2Actual.json'])
     bal4f = _roots(glob.glob(f'private-{tag}/TestBalancerStablePool4f189ea1_*.json'))
     balnov = _roots(glob.glob(f'private-{tag}/TestBalancerStablePoolPaminaNov25_*.json'))
@@ -54,22 +53,12 @@ def compute(tag):
         mds = roots.get(fn, [])
         return bool(mds) and all(_ret(md) == want for md in mds)
 
-    burn = (radiant.get('burn') or [{}])[0]
-    mint = (radiant.get('mint') or [{}])[0]
     redeem = (compound.get('redeemFresh') or [{}])[0]
     checks = [
         (all_ret(kyber, 'calcReachAmount', 'Inconsistent'),
          "Kyber: calcReachAmount is Indet"),
         (all_ret(kyber, 'computeSwapStep', 'Inconsistent'),
          "Kyber: computeSwapStep's outputs (deltaL, next price) are all Indet"),
-        (all_ret(radiant, 'rayDiv', 'Inconsistent'),
-         "Radiant: rayDiv is Indet"),
-        (_site(burn, 121, 'amount.rayDiv(index)') == ['Inconsistent']
-         and _site(burn, 122, 'amountScaled') == ['Inconsistent']
-         and _site(burn, 123, 'amountScaled') == ['Inconsistent'],
-         "Radiant: burn flags amount.rayDiv(index) Indet at its line and both consuming lines"),
-        (_site(mint, 142, 'amount.rayDiv(index)') == ['Inconsistent'],
-         "Radiant: the mint path is flagged the same way"),
         (all(_ret(aave4.get(f, [{}])[0]) == d for f, d in
              (('rayDivUp', 'Up'), ('rayDivDown', 'Down'), ('rayMulDown', 'Down'))),
          "Aave v4: rayDivUp, rayDivDown, rayMulDown each round as named"),

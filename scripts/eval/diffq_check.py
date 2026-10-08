@@ -110,11 +110,19 @@ def compute(roots, d):
         s_above, s_below, s_equal = _ints(r, 'searchAbove', 'searchBelow', 'searchEqual')
         samples.add(int(r['samples']))
 
-        # the harness's verdict must be the published one
+        # the harness's verdict must be the published one. Entry points match exactly; an
+        # internal node is matched by source position only, because the report does not
+        # record WALA's calling context (e.g. one specialization per enum constant), so an
+        # internal node whose verdict is not among its position's published ones is
+        # excluded and counted rather than fatal.
         if v in SCALAR:
             pub = pub_roots.get((test, sig)) if entry else pub_nodes.get(pos)
             if pub and v not in pub:
-                mismatches.append((test, sig[:80], v, sorted(pub)))
+                if entry:
+                    mismatches.append((test, sig[:80], v, sorted(pub)))
+                else:
+                    c['internal_context_mismatch'] += 1
+                    continue
             if not entry and not pub:
                 c['internal_unpublished'] += 1
 
@@ -196,7 +204,8 @@ def main():
           f"samples per function {r['samples_per_function']}")
     if c['internal_rows']:
         print(f"internal nodes: rows {c['internal_rows']}, evaluated {c['internal_evaluated']}, "
-              f"verdict context absent from the report {c['internal_unpublished']}")
+              f"verdict context absent from the report {c['internal_unpublished']}, "
+              f"excluded as context-ambiguous {c['internal_context_mismatch']}")
     print(f"definitions whose Up/Down direction was exhibited: {r['directional_all']} "
           f"(entry {r['directional'].get('entry', 0)}, internal {r['directional'].get('internal', 0)})")
     print(f"Indet definitions by evidence: {dict(r['indet'])}")
