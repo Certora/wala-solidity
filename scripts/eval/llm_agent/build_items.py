@@ -40,7 +40,6 @@ POS = re.compile(r'^(.*):\[(\d+),\d+-\d+,\d+\]$')
 CASES = {
     'case-studies/cs-CompoundV2Actual.json': 'test/data/_repros/CompoundV2Actual',
     'case-studies/cs-KyberActual.json': 'test/data/_repros/KyberActual',
-    'case-studies/cs-RadiantATokenActual.json': 'test/data/_repros/RadiantATokenActual',
 }
 
 
