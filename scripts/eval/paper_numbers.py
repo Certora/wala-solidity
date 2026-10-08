@@ -115,8 +115,9 @@ def main():
     # correctness: differential interpretation
     dq = diffq_check.compute(f'private-{tag}', 'diffq')
     dc, df = dq['counts'], dq['functions']
-    if dc['viol']:
-        raise SystemExit(f"{dc['viol']} differential violations: the paper's claim is false")
+    if dc['viol'] or dq['violations'] or dq['search_violations']:
+        raise SystemExit(f"differential violations ({len(dq['violations'])} sampled, "
+                         f"{len(dq['search_violations'])} found by search): the paper's claim is false")
     assert dq['samples_per_function'] == [dq['samples_per_function'][0]]
     m.update(evDqRows=n(dc['ok']), evDqFunctions=n(df.get('checked', 0)),
              evDqSamples=n(dq['samples_per_function'][0]),

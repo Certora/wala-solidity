@@ -5,7 +5,8 @@ Runs eval.DifferentialQ for every configuration in corpus.py, with per-run logs 
 no silent failure: a run that exits nonzero or produces no TSV is reported by name,
 and the script fails unless all 21 complete.
 
-Usage: python3 run_diffq.py <suite-env-root> <jar> <out-dir> [samples]
+Usage: python3 run_diffq.py <suite-env-root> <jar> <out-dir> [samples] [harness flags...]
+  e.g. ... 2000 --all-nodes --search=20000
 """
 import os
 import subprocess
@@ -16,6 +17,7 @@ from corpus import CORPUS, tag
 
 root, jar, out = (os.path.abspath(a) for a in sys.argv[1:4])
 samples = sys.argv[4] if len(sys.argv) > 4 else "2000"
+flags = sys.argv[5:]
 os.makedirs(out, exist_ok=True)
 failed = []
 for t, d, conf, ast in CORPUS:
@@ -27,7 +29,7 @@ for t, d, conf, ast in CORPUS:
     with open(log, 'w') as lf:
         r = subprocess.run(
             ["java", "-ea", "-cp", jar, "com.certora.wala.analysis.rounding.eval.DifferentialQ",
-             os.path.join(d, conf), tsv, "--combined", astp, samples],
+             os.path.join(d, conf), tsv, "--combined", astp, samples, *flags],
             cwd=root, stdout=lf, stderr=lf)
     ok = r.returncode == 0 and os.path.isfile(tsv) and len(open(tsv).read().splitlines()) > 1
     print(f"{'ok  ' if ok else 'FAIL'} {t}")
