@@ -6,7 +6,7 @@ construction, call graph, both phases - plus the test's assertions, which are
 negligible. A failed test still reports its time and is counted.
 
 Given several logs (repeated runs of the same build), each configuration's time
-is its median over the runs, and the total is the sum of those medians. Fails if
+is its mean over the runs, and the total is the sum of those means. Fails if
 any corpus configuration has no timing line in any log.
 
 Usage: timings.py <mvn-test.log> [<mvn-test.log> ...]
@@ -40,7 +40,7 @@ def compute(logs):
     if not logs:
         raise SystemExit("no run logs given")
     runs = [_one(log) for log in logs]
-    t = {k: statistics.median(r[k] for r in runs) for k in PROT}
+    t = {k: statistics.mean(r[k] for r in runs) for k in PROT}
     slowest = max(t, key=t.get)
     return dict(seconds=t, median=statistics.median(t.values()),
                 slowest=slowest, slowest_s=t[slowest], total=sum(t.values()),

@@ -14,7 +14,7 @@ hand and every number traces to one function below. Run from eval-artifacts/:
 where <tag> names the canonical extracts (private-<tag>-returns.txt, ...) and the
 result JSON directory private-<tag>/. All other inputs are fixed paths in this
 directory: runs/<tag>-mvn-test*.log (one per repeated run; times are
-per-configuration medians), diffq/, ablation/, case-studies/, llm/.
+per-configuration means), diffq/, ablation/, case-studies/, llm/.
 """
 import glob
 import os
@@ -89,7 +89,7 @@ def main():
              evPctIndet=pct(ct['pct']['indet']), evNonExact=n(ct['non_exact']))
 
     # performance
-    tm = timings.compute(sorted(glob.glob(f'runs/{tag}-mvn-test*.log')))  # median over repeated runs
+    tm = timings.compute(sorted(glob.glob(f'runs/{tag}-mvn-test*.log')))  # mean over repeated runs
     m.update(evTimeRuns=WORDS.get(tm['runs'], str(tm['runs'])), evTimeMedian=f"{tm['median']:.1f}", evTimeSlowest=f"{tm['slowest_s']:.0f}",
              evTimeSlowestName=DISPLAY[tm['slowest']],
              evTimeTotalMin=f"{tm['total'] / 60:.1f}")
