@@ -12,6 +12,7 @@
  */
 package com.certora.wala.analysis.rounding;
 
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,11 +23,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.certora.wala.analysis.defuse.DefUseGraph;
-import com.google.common.collect.Sets;
 import com.ibm.wala.cast.ir.ssa.CAstBinaryOp;
 import com.ibm.wala.cfg.Util;
 import com.ibm.wala.cfg.cdg.ControlDependenceGraph;
@@ -48,14 +47,8 @@ import com.ibm.wala.ssa.SymbolTable;
 import com.ibm.wala.util.collections.HashMapFactory;
 import com.ibm.wala.util.collections.HashSetFactory;
 import com.ibm.wala.util.graph.Acyclic;
-import com.ibm.wala.util.graph.NumberedGraph;
 import com.ibm.wala.util.graph.dominators.Dominators;
-import com.ibm.wala.util.graph.impl.GraphInverter;
-import com.ibm.wala.util.graph.traverse.DFS;
 import com.ibm.wala.util.intset.IBinaryNaturalRelation;
-import com.ibm.wala.util.intset.IntIterator;
-import com.ibm.wala.util.intset.IntSetUtil;
-import com.ibm.wala.util.intset.MutableIntSet;
 
 /**
  * Phase 1: pattern recognition. Runs once per method (uses the IR and def-use, the bodies of
@@ -63,7 +56,7 @@ import com.ibm.wala.util.intset.MutableIntSet;
  * Phase 2 to propagate:
  * 
  * - each division's direction: Down, Neither for a division by the constant 1, or Up for the
- *     round-up bias {@code (a+b-1)/b} (recognized when the divisor also flows into the dividend);
+ *     round-up bias {@code (a+b-1)/b}, which is also recorded as the ceiling {@code ceil(a/b)};
  * - the values that compute a ceiling {@code ceil(N/D)} (see {@link #recognizeCeilings}):
  *     Phase 2 treats them as divUp(N, D). A bare {@code a/b + c} is not one, so it is skipped;
  * - divergence facts for branch merges and loops.
@@ -121,46 +114,136 @@ public class RoundingRecognition {
 	// division direction (the bias idiom)
 
 	private void classifyDivisions(IR ir) {
+		SymbolTable st = ir.getSymbolTable();
 		ir.iterateAllInstructions().forEachRemaining(inst -> {
 			if (inst instanceof SSABinaryOpInstruction) {
 				SSABinaryOpInstruction bin = (SSABinaryOpInstruction) inst;
 				if (bin.getOperator() == IBinaryOpInstruction.Operator.DIV) {
-					divDir.put(bin.iIndex(), classify(bin));
+					if (isOne(bin.getUse(1), st)) {
+						divDir.put(bin.iIndex(), Direction.Neither); // x / 1 == x: exact for every dividend
+						return;
+					}
+					int a = biasNumerator(bin);
+					if (a > 0) {
+						divDir.put(bin.iIndex(), Direction.Up);
+						ceilings.put(bin.getDef(), new Ceiling(factors(a), bin.getUse(1), Collections.emptyList()));
+					} else {
+						divDir.put(bin.iIndex(), Direction.Down);
+					}
 				}
 			}
 		});
 	}
 
-	private Direction classify(SSABinaryOpInstruction instruction) {
-		if (isOne(instruction.getUse(1), dug.ir().getSymbolTable())) {
-			return Direction.Neither; // x / 1 == x: exact for every dividend
+	/**
+	 * The A of a bias division {@code (A + D - 1) / D}, or -1 if {@code div} is not one. Its value
+	 * is {@code ceil(A / D)} for every integer A and every D >= 1, so Q gives it the numerator A,
+	 * not the dividend: the dividend's own real quotient {@code (A + D - 1) / D} is above the
+	 * floor, not below it. Dividend and divisor are read as signed sums through additions and
+	 * subtractions, so the bias may be spelled {@code A + D - 1}, {@code A + (D - 1)} or
+	 * {@code A - 1 + D}; what is left of the dividend after taking away D and one must be a
+	 * single value. Anything else sharing an addend with the divisor, like {@code (A + D) / D},
+	 * rounds down. A divisor that is only a constant is not taken as a bias: the shared literal 1
+	 * of {@code assets * (supply + 1) / (totalAssets + 1)} says nothing about rounding up.
+	 */
+	private int biasNumerator(SSABinaryOpInstruction div) {
+		LinearForm divisor = linearForm(div.getUse(1));
+		LinearForm dividend = linearForm(div.getUse(0));
+		if (divisor == null || dividend == null || divisor.terms.isEmpty()) {
+			return -1;
 		}
-		Set<SSAInstruction> divisor = getDivisorRelated(instruction);
-
-		Set<SSAInstruction> dividend = getDividendRelated(instruction);
-		Set<SSAInstruction> dividendAddends = dividend.stream()
-			.filter(inst -> inst instanceof SSABinaryOpInstruction && ((SSABinaryOpInstruction) inst).getOperator() == IBinaryOpInstruction.Operator.ADD)
-			.map(inst -> getDeriving(inst))
-			.reduce((l, r) -> Sets.union(l, r))
-			.orElse(Collections.emptySet());
-
-		MutableIntSet bothValues = getRelatedValues(instruction.getUse(1), divisor, false);
-		bothValues.intersectWith(getRelatedValues(instruction.getUse(0), dividendAddends, false));
-
-		// A shared literal (the symbol table interns one value number per constant, so the two
-		// 1s of assets * (supply + 1) / (totalAssets + 1) are the same value) or the shared
-		// contract reference behind two storage reads says nothing about a round-up bias; only
-		// a genuinely shared expression, like the divisor flowing into the dividend's addition,
-		// does.
-		SymbolTable st = dug.ir().getSymbolTable();
-		IntIterator it = bothValues.intIterator();
-		while (it.hasNext()) {
-			int v = it.next();
-			if (v != 1 && !st.isConstant(v)) {
-				return Direction.Up;
+		List<int[]> rest = new ArrayList<>(dividend.terms);
+		for (int[] t : divisor.terms) {
+			if (!removeTerm(rest, t)) {
+				return -1;
 			}
 		}
-		return Direction.Down;
+		if (!dividend.constant.subtract(divisor.constant).equals(BigInteger.ONE.negate()) || rest.isEmpty()) {
+			return -1;
+		}
+		for (int[] t : rest) {
+			if (t[1] < 0) {
+				return -1;
+			}
+		}
+		if (rest.size() == 1) {
+			return rest.get(0)[0];
+		}
+		// A sum A = x + y appears as one value only if the dividend computes it as a subterm.
+		for (int candidate : dividend.subterms) {
+			LinearForm f = linearForm(candidate);
+			if (f != null && f.constant.signum() == 0 && sameTerms(f.terms, rest)) {
+				return candidate;
+			}
+		}
+		return -1;
+	}
+
+	/** A value as {@code sum of sign * term + constant}, through additions and subtractions. */
+	private static final class LinearForm {
+		/** {value number, +1 or -1}. */
+		final List<int[]> terms = new ArrayList<>();
+		BigInteger constant = BigInteger.ZERO;
+		/** The additions and subtractions read through, outermost excluded. */
+		final List<Integer> subterms = new ArrayList<>();
+	}
+
+	/** How many additions and subtractions {@link #linearForm} reads through before giving up. */
+	private static final int LINEAR_FORM_SIZE = 16;
+
+	private LinearForm linearForm(int vn) {
+		LinearForm f = new LinearForm();
+		return addLinear(vn, 1, f, true) ? f : null;
+	}
+
+	private boolean addLinear(int vn, int sign, LinearForm f, boolean outermost) {
+		SymbolTable st = dug.ir().getSymbolTable();
+		if (st.isConstant(vn) && st.getConstantValue(vn) instanceof Number) {
+			Number n = (Number) st.getConstantValue(vn);
+			BigInteger c = n instanceof BigInteger ? (BigInteger) n : BigInteger.valueOf(n.longValue());
+			f.constant = sign > 0 ? f.constant.add(c) : f.constant.subtract(c);
+			return true;
+		}
+		SSAInstruction def = dug.du().getDef(vn);
+		if (def instanceof SSABinaryOpInstruction) {
+			IBinaryOpInstruction.IOperator op = ((SSABinaryOpInstruction) def).getOperator();
+			if (op == IBinaryOpInstruction.Operator.ADD || op == IBinaryOpInstruction.Operator.SUB) {
+				if (!outermost) {
+					if (f.subterms.size() >= LINEAR_FORM_SIZE) {
+						return false;
+					}
+					f.subterms.add(vn);
+				}
+				int rightSign = op == IBinaryOpInstruction.Operator.ADD ? sign : -sign;
+				return addLinear(def.getUse(0), sign, f, false) && addLinear(def.getUse(1), rightSign, f, false);
+			}
+		}
+		f.terms.add(new int[] { vn, sign });
+		return true;
+	}
+
+	/** Removes one term structurally equal to {@code t}, with the same sign; false if there is none. */
+	private boolean removeTerm(List<int[]> terms, int[] t) {
+		for (int i = 0; i < terms.size(); i++) {
+			if (terms.get(i)[1] == t[1] && sameExpr(terms.get(i)[0], t[0], dug.du())) {
+				terms.remove(i);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean sameTerms(List<int[]> t1, List<int[]> t2) {
+		if (t1.size() != t2.size()) {
+			return false;
+		}
+		List<int[]> rest = new ArrayList<>(t2);
+		for (int[] t : t1) {
+			if (!removeTerm(rest, t)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	// ceiling idioms
@@ -1268,40 +1351,5 @@ public class RoundingRecognition {
 			a[i++] = v;
 		}
 		return a;
-	}
-
-	// def-use helpers (shared by both patterns)
-
-	private Set<SSAInstruction> getRelevant(SSAInstruction inst, NumberedGraph<Integer> g) {
-		if (inst == null) {
-			return Collections.emptySet();
-		} else if (inst.hasDef()) {
-			int v = inst.getDef();
-			return DFS.getReachableNodes(g, Collections.singleton(v)).stream().map(i -> dug.du().getDef(i))
-					.filter(instr -> instr != null).collect(Collectors.toSet());
-		} else {
-			return Collections.emptySet();
-		}
-	}
-
-	private Set<SSAInstruction> getDeriving(SSAInstruction inst) {
-		return getRelevant(inst, GraphInverter.invert(dug));
-	}
-
-	private Set<SSAInstruction> getDivisorRelated(SSABinaryOpInstruction div) {
-		return getDeriving(dug.du().getDef(div.getUse(1)));
-	}
-
-	private Set<SSAInstruction> getDividendRelated(SSABinaryOpInstruction div) {
-		return getDeriving(dug.du().getDef(div.getUse(0)));
-	}
-
-	private static MutableIntSet getRelatedValues(int startValue, Set<SSAInstruction> related, boolean forward) {
-		// flatMapToInt rather than reduce(IntStream::concat): repeated concat nests streams
-		// and can overflow the stack on large backward slices
-		IntStream values = related.stream()
-				.flatMapToInt(inst -> forward ? IntStream.of(inst.getDef()).filter(i -> i > 0)
-						: IntStream.range(0, inst.getNumberOfUses()).map(inst::getUse));
-		return IntSetUtil.make(IntStream.concat(values, IntStream.of(startValue)).distinct().toArray());
 	}
 }

@@ -11,10 +11,11 @@ without symbolic-divisor `div`, keeping Z3 fast and predictable. We assert the
 negation of each schema and expect unsat; shift identities are proved over 256-bit
 bitvectors. A FALSIFIED row prints Z3's counterexample.
 
-Expected outcome: every recognizer schema verifies; the bias-division rule as
-implemented (classify(): any shared non-constant between the divisor and a dividend
-addend => Up, with Q keeping the whole dividend as numerator) is falsified - the
-soundness ledger's item 1 - while the b-1 side condition verifies as the fix target.
+Expected outcome: every recognizer schema verifies, including the bias division
+(A + D - 1)/D => ceil(A/D) that biasNumerator() recognizes. The rule it replaced (any
+shared non-constant between the divisor and a dividend addend => Up, with Q keeping the
+whole dividend as numerator) stays in the catalog as a schema expected to be falsified:
+it is how the proof found the bug.
 
 Run: python3 verify_patterns.py   (needs pip package z3-solver)
 """
@@ -98,7 +99,7 @@ def _(s):
     s.add(Not((x << k) == x * (BitVecVal(1, 256) << k)))
 
 
-@schema("bias rule AS IMPLEMENTED: divisor shared with a dividend addend => Up "
+@schema("bias rule BEFORE the b-1 fix: divisor shared with a dividend addend => Up "
         "(Q claims floor((a+b)/b) = ceil((a+b)/b))", expect_verified=False)
 def _(s):
     a, b = Int('a'), Int('b')
@@ -107,7 +108,7 @@ def _(s):
     s.add(Not(q == ceil(s, a + b, b)))
 
 
-@schema("bias rule with the b-1 side condition: (a+b-1)/b  =>  ceil(a/b)")
+@schema("bias rule as implemented: (a+b-1)/b  =>  ceil(a/b)")
 def _(s):
     a, b = Int('a'), Int('b')
     s.add(a >= 0, b >= 1)
