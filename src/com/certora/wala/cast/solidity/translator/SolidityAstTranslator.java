@@ -21,6 +21,7 @@ import com.certora.wala.cast.solidity.loader.ContractType;
 import com.certora.wala.cast.solidity.loader.EnumType;
 import com.certora.wala.cast.solidity.loader.FunctionType;
 import com.certora.wala.cast.solidity.loader.SolidityLoader;
+import com.certora.wala.cast.solidity.loader.StructType;
 import com.certora.wala.cast.solidity.tree.SolidityArrayType;
 import com.certora.wala.cast.solidity.tree.SolidityCAstType;
 import com.certora.wala.cast.solidity.tree.SolidityMappingType;
@@ -402,6 +403,15 @@ public class SolidityAstTranslator extends AstTranslator {
 			for(int i = 1; i < newNode.getChildCount(); i++) {
 				TypeReference t =SolidityCAstType.getIRType(tt.getElement(i-1));
 				context.cfg().addInstruction(insts.PutInstruction(context.cfg().getCurrentInstruction(), result, context.getValue(newNode.getChild(i)), FieldReference.findOrCreate(SolidityTypes.tuple, Atom.findOrCreateUnicodeAtom(""+(i-1)), t)));
+			}
+		} else if (newNode.getChildCount() >= 1 && newNode.getChild(0).getValue() instanceof StructType) {
+			// S(a, b): a fresh struct, then each member's value written to its field
+			TypeReference st = SolidityCAstType.getIRType((StructType) newNode.getChild(0).getValue());
+			context.cfg().addInstruction(insts.NewInstruction(context.cfg().getCurrentInstruction(), result, NewSiteReference.make(context.cfg().getCurrentInstruction(), st)));
+			for(int i = 1; i + 2 < newNode.getChildCount(); i += 3) {
+				String member = (String) newNode.getChild(i).getValue();
+				TypeReference t = SolidityCAstType.getIRType((CAstType) newNode.getChild(i+1).getValue());
+				context.cfg().addInstruction(insts.PutInstruction(context.cfg().getCurrentInstruction(), result, context.getValue(newNode.getChild(i+2)), FieldReference.findOrCreate(st, Atom.findOrCreateUnicodeAtom(member), t)));
 			}
 		} else if (newNode.getChildCount() == 2 && newNode.getChild(0).getValue() instanceof EnumType) {
 			TypeReference et = SolidityCAstType.getIRType((EnumType)newNode.getChild(0).getValue());

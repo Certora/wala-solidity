@@ -103,7 +103,10 @@ public class RoundingGraph {
 	public record Bitwise(int vn, int[] operands) implements Node {
 	}
 
-	/** An ordinary merge: both runs take the same path, so the arms meet. */
+	/**
+	 * An ordinary merge: both runs take the same path, so the arms meet. Also a struct member read
+	 * (the writes that can reach it) and a struct as one value (everything written into it).
+	 */
 	public record Merge(int vn, int[] arms) implements Node {
 	}
 

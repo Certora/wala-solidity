@@ -35,6 +35,7 @@ import com.ibm.wala.ssa.SSAAbstractInvokeInstruction;
 import com.ibm.wala.ssa.SSAArrayLoadInstruction;
 import com.ibm.wala.ssa.SSAArrayStoreInstruction;
 import com.ibm.wala.ssa.SSABinaryOpInstruction;
+import com.ibm.wala.ssa.SSACFG;
 import com.ibm.wala.ssa.SSACFG.BasicBlock;
 import com.ibm.wala.ssa.SSACheckCastInstruction;
 import com.ibm.wala.ssa.SSAGetInstruction;
@@ -299,7 +300,7 @@ public class RoundingGraphBuilder {
 		Node get(SSAInstruction instruction) {
 			result = null;
 			o = owner[instruction.getDef()];
-			if (isPosition.test(instruction.getDef())) {
+			if (isPosition.test(instruction.getDef()) && !isStructValue(instruction)) {
 				return new RoundingGraph.Opaque(o, "position", true);
 			}
 			if (!inDeadBlock(instruction)) {
@@ -402,8 +403,12 @@ public class RoundingGraphBuilder {
 		@Override
 		public void visitGet(SSAGetInstruction instruction) {
 			// a component of a tuple: the value stored into a tuple built here, or that component
-			// of a call's result; any other field read stays unmodelled
+			// of a call's result; a struct member (below); any other field read stays unmodelled
 			FieldReference f = instruction.getDeclaredField();
+			if (!instruction.isStatic() && PositionValues.isStructField(f)) {
+				result = structRead(instruction);
+				return;
+			}
 			if (instruction.isStatic() || !PositionValues.isTupleComponent(f)) {
 				return;
 			}
@@ -421,6 +426,109 @@ public class RoundingGraphBuilder {
 				result = new RoundingGraph.Call(o, call, f);
 			}
 		}
+
+		@Override
+		public void visitNew(SSANewInstruction instruction) {
+			// a struct built here, as one value (an argument or a returned value): every value
+			// written into it here
+			if (PositionValues.isStruct(instruction.getConcreteType())) {
+				List<Integer> arms = new ArrayList<>();
+				for (SSAPutInstruction put : structWrites(instruction.getDef(), null)) {
+					arms.add(owner[put.getVal()]);
+				}
+				result = meetOf(arms);
+			}
+		}
+
+		/**
+		 * A struct member read: the values written to that member of the same struct that can
+		 * reach the read, and, for a struct that comes from elsewhere (a parameter, a call result,
+		 * storage), the struct's own direction. A struct built here starts from zeroes.
+		 */
+		private Node structRead(SSAGetInstruction get) {
+			int ref = get.getRef();
+			List<Integer> arms = new ArrayList<>();
+			if (!(du.getDef(ref) instanceof SSANewInstruction)) {
+				arms.add(owner[ref]);
+			}
+			for (SSAPutInstruction put : structWrites(ref, get.getDeclaredField())) {
+				if (mayReach(put, get, du.getDef(ref))) {
+					arms.add(owner[put.getVal()]);
+				}
+			}
+			return meetOf(arms);
+		}
+
+		private Node meetOf(List<Integer> arms) {
+			int[] distinct = arms.stream().mapToInt(Integer::intValue).distinct().toArray();
+			return distinct.length == 0 ? null
+					: distinct.length == 1 ? new RoundingGraph.Assign(o, distinct[0])
+					: new RoundingGraph.Merge(o, distinct);
+		}
+	}
+
+	/**
+	 * A struct that is a value rather than a location, although its members are read through it:
+	 * one built here, or one a call returns (as itself or as a tuple component). A call that
+	 * returns a storage pointer still reads exact, because the callee's returned value is itself
+	 * a position.
+	 */
+	private static boolean isStructValue(SSAInstruction inst) {
+		if (inst instanceof SSANewInstruction n) {
+			return PositionValues.isStruct(n.getConcreteType());
+		}
+		if (inst instanceof SSAAbstractInvokeInstruction c) {
+			return PositionValues.isStruct(c.getDeclaredResultType());
+		}
+		return inst instanceof SSAGetInstruction g && !g.isStatic() && PositionValues.isTupleComponent(g.getDeclaredField())
+				&& PositionValues.isStruct(g.getDeclaredFieldType());
+	}
+
+	/** The live writes to member {@code f} (any member when null) of the struct {@code ref}. */
+	private List<SSAPutInstruction> structWrites(int ref, FieldReference f) {
+		List<SSAPutInstruction> writes = new ArrayList<>();
+		for (Iterator<SSAInstruction> uses = du.getUses(ref); uses.hasNext();) {
+			if (uses.next() instanceof SSAPutInstruction put && put.getRef() == ref && !inDeadBlock(put)
+					&& PositionValues.isStructField(put.getDeclaredField())
+					&& (f == null || put.getDeclaredField().getName().equals(f.getName()))) {
+				writes.add(put);
+			}
+		}
+		return writes;
+	}
+
+	/**
+	 * True when some execution can run {@code from} and then {@code to}, possibly around a loop,
+	 * without passing {@code barrier} (the definition of the struct written, null for a parameter):
+	 * past it the reference names a fresh struct, as in the next iteration of a loop that
+	 * rebuilds it.
+	 */
+	private boolean mayReach(SSAInstruction from, SSAInstruction to, SSAInstruction barrier) {
+		SSACFG cfg = ir.getControlFlowGraph();
+		ISSABasicBlock source = cfg.getBlockForInstruction(from.iIndex());
+		ISSABasicBlock target = cfg.getBlockForInstruction(to.iIndex());
+		if (source.equals(target) && from.iIndex() < to.iIndex()) {
+			return true;
+		}
+		// the definition dominates every read and write of the struct, so a path that enters its
+		// block from outside passes it before reaching anything that uses the reference
+		ISSABasicBlock wall = barrier == null || barrier.iIndex() < 0 ? null : cfg.getBlockForInstruction(barrier.iIndex());
+		Set<ISSABasicBlock> seen = HashSetFactory.make();
+		Deque<ISSABasicBlock> worklist = new ArrayDeque<>();
+		cfg.getSuccNodes(source).forEachRemaining(worklist::add);
+		while (!worklist.isEmpty()) {
+			ISSABasicBlock b = worklist.poll();
+			if (b.equals(wall)) {
+				continue;
+			}
+			if (b.equals(target)) {
+				return true;
+			}
+			if (seen.add(b)) {
+				cfg.getSuccNodes(b).forEachRemaining(worklist::add);
+			}
+		}
+		return false;
 	}
 
 	// absorption of idiom scaffolding (Option A: the graph is Q, and only Q)

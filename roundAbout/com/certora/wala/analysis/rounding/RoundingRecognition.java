@@ -39,11 +39,15 @@ import com.ibm.wala.ssa.SSAAbstractInvokeInstruction;
 import com.ibm.wala.ssa.SSABinaryOpInstruction;
 import com.ibm.wala.ssa.SSACFG;
 import com.ibm.wala.ssa.SSAConditionalBranchInstruction;
+import com.ibm.wala.ssa.SSAGetInstruction;
 import com.ibm.wala.ssa.SSAInstruction;
+import com.ibm.wala.ssa.SSANewInstruction;
 import com.ibm.wala.ssa.SSAPhiInstruction;
+import com.ibm.wala.ssa.SSAPutInstruction;
 import com.ibm.wala.ssa.SSAReturnInstruction;
 import com.ibm.wala.ssa.SSAUnaryOpInstruction;
 import com.ibm.wala.ssa.SymbolTable;
+import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.collections.HashMapFactory;
 import com.ibm.wala.util.collections.HashSetFactory;
 import com.ibm.wala.util.graph.Acyclic;
@@ -813,7 +817,28 @@ public class RoundingRecognition {
 				return true;
 			}
 		}
+		if (d1 instanceof SSAGetInstruction g1 && d2 instanceof SSAGetInstruction g2 && !g1.isStatic()
+				&& g1.getRef() == g2.getRef() && PositionValues.isStructField(g1.getDeclaredField())
+				&& g1.getDeclaredField().getName().equals(g2.getDeclaredField().getName())) {
+			return unwrittenAfterInit(g1.getRef(), g1.getDeclaredField(), du);
+		}
 		return false;
+	}
+
+	/**
+	 * No write to member {@code f} of struct {@code ref} can fall between two reads of it: the
+	 * member is never written here, or only by the literal that builds the struct (whose write
+	 * directly follows the allocation, before any read can see the struct).
+	 */
+	private static boolean unwrittenAfterInit(int ref, FieldReference f, DefUse du) {
+		int writes = 0;
+		for (Iterator<SSAInstruction> uses = du.getUses(ref); uses.hasNext();) {
+			if (uses.next() instanceof SSAPutInstruction put && put.getRef() == ref
+					&& put.getDeclaredField().getName().equals(f.getName())) {
+				writes++;
+			}
+		}
+		return writes == 0 || (writes == 1 && du.getDef(ref) instanceof SSANewInstruction);
 	}
 
 	private static boolean isOne(int vn, SymbolTable st) {

@@ -1147,12 +1147,66 @@ public class JSONToCAst {
 				if (modular != null) {
 					return modular;
 				}
+				if ("structConstructorCall".equals(o.optString("kind"))) {
+					CAstNode struct = structConstruction(o, context);
+					if (struct != null) {
+						return struct;
+					}
+				}
 				CAstNode fun = visit(o.getJSONObject("expression"), context);
 				if (fun == null) {
 					visit(o.getJSONObject("expression"), context);
 				}
 				CAstNode[] args = Streams.concat(Streams.stream(Optional.of(ast.makeNode(CAstNode.EMPTY))), Streams.stream(o.getJSONArray("arguments").iterator()).map(v -> (JSONObject)v).map(v -> visit(v, context))).toArray(i -> new CAstNode[i]);
 				return record(ast.makeNode(CAstNode.CALL, fun, args), getLocation(o.getString("src")), getType(o, context), context);
+			}
+
+			/**
+			 * A struct constructor {@code S(a, b)} or {@code S({x: a, y: b})} as a fresh struct with one
+			 * field write per member: NEW(S, then a (member, member type, value) triple per member in
+			 * declaration order). Mapping members are not part of a memory struct and take no argument.
+			 * Returns null when the definition cannot be found, leaving the call to translate as before.
+			 */
+			private CAstNode structConstruction(JSONObject o, SolidityWalkContext context) {
+				JSONObject def = getDeclaration(o.getJSONObject("expression"), context);
+				if (def == null || !"StructDefinition".equals(def.optString("nodeType"))) {
+					return null;
+				}
+				List<JSONObject> members = new ArrayList<>();
+				def.getJSONArray("members").forEach(m -> {
+					JSONObject member = (JSONObject) m;
+					if (!"Mapping".equals(member.getJSONObject("typeName").optString("nodeType"))) {
+						members.add(member);
+					}
+				});
+				JSONArray args = o.getJSONArray("arguments");
+				JSONArray names = o.optJSONArray("names");
+				boolean named = names != null && names.length() > 0;
+				if (args.length() != members.size()) {
+					return null;
+				}
+				List<CAstNode> children = new ArrayList<>();
+				children.add(ast.makeConstant(getType(o, context)));
+				for (int i = 0; i < members.size(); i++) {
+					String name = members.get(i).getString("name");
+					int arg = i;
+					if (named) {
+						arg = -1;
+						for (int j = 0; j < names.length(); j++) {
+							if (name.equals(names.getString(j))) {
+								arg = j;
+							}
+						}
+						if (arg < 0) {
+							return null;
+						}
+					}
+					children.add(ast.makeConstant(name));
+					children.add(ast.makeConstant(getType(members.get(i), context)));
+					children.add(visit(args.getJSONObject(arg), context));
+				}
+				return record(ast.makeNode(CAstNode.NEW, children.toArray(new CAstNode[0])),
+						getLocation(o.getString("src")), getType(o, context), context);
 			}
 
 			/**

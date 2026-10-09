@@ -31,6 +31,7 @@ import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.ssa.SSAPutInstruction;
 import com.ibm.wala.ssa.SSAReturnInstruction;
 import com.ibm.wala.types.FieldReference;
+import com.ibm.wala.types.TypeReference;
 import com.ibm.wala.util.collections.HashSetFactory;
 import com.ibm.wala.util.collections.Pair;
 
@@ -194,6 +195,20 @@ public class PositionValues {
 	/** A field of a Solidity tuple: a component of a multi-value result, not a memory location. */
 	public static boolean isTupleComponent(FieldReference f) {
 		return f.getDeclaringClass().equals(SolidityTypes.tuple);
+	}
+
+	/**
+	 * A Solidity struct type. A reference of one is a location here, as a storage pointer is: the
+	 * IR does not say whether a struct lives in memory or storage. The rounding graph builder
+	 * exempts the values that are certainly memory structs (one built here, one a call returns).
+	 */
+	public static boolean isStruct(TypeReference t) {
+		return t != null && t.getName().toString().startsWith("Lstruct ");
+	}
+
+	/** A member of a Solidity struct. */
+	public static boolean isStructField(FieldReference f) {
+		return isStruct(f.getDeclaringClass());
 	}
 
 	private static <T> Iterable<T> iterable(Iterator<T> it) {
