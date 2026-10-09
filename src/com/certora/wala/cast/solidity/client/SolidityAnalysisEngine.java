@@ -55,6 +55,7 @@ import com.ibm.wala.cast.tree.CAstType;
 import com.ibm.wala.cast.tree.impl.CAstImpl;
 import com.ibm.wala.cast.tree.impl.CAstOperator;
 import com.ibm.wala.cfg.ControlFlowGraph;
+import com.certora.wala.cast.solidity.translator.BaseCallSiteReference;
 import com.ibm.wala.classLoader.CallSiteReference;
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
@@ -145,7 +146,13 @@ public abstract class SolidityAnalysisEngine<A> extends AbstractAnalysisEngine<I
 					final Set<CGNode> targets = HashSetFactory.make();
 					final Set<IMethod> targetMethods = HashSetFactory.make();
 
-					if ((recv = v[0].getConcreteType()) != null &&
+					if (site instanceof BaseCallSiteReference) {
+						// Base.f(...): bound to the named function's own body, no dispatch on self
+						IClass named = cha.lookupClass(site.getDeclaredTarget().getDeclaringClass());
+						if (named instanceof DynamicCodeBody && ((DynamicCodeBody)named).getCodeBody() != null) {
+							targetMethods.add(((DynamicCodeBody)named).getCodeBody());
+						}
+					} else if ((recv = v[0].getConcreteType()) != null &&
 							recv instanceof TypedCodeBody && 
 							(((TypedCodeBody)recv).isVirtual() || 
 									site.getInvocationCode() == Dispatch.SPECIAL ||
@@ -172,9 +179,13 @@ public abstract class SolidityAnalysisEngine<A> extends AbstractAnalysisEngine<I
 									return ms.stream().filter(m -> m != null)
 											.filter(m -> {
 												IClass mc = cha.lookupClass(((TypedCodeBody)m.getDeclaringClass()).getSelf());
-												return ms.stream().filter(o -> o != null).anyMatch(o -> {
-													IClass oc = cha.lookupClass(((TypedCodeBody)o.getDeclaringClass()).getSelf());										
-													return o!=m && !(oc.getAllImplementedInterfaces().contains(mc) || cha.isAssignableFrom(mc, oc));
+												// keep m only if no other candidate overrides it (is declared in a
+												// subtype of m's contract): the most-derived override, as Solidity
+												// dispatches. The test used to be inverted, which kept overridden
+												// middle classes and left supers.get(0) to pick in hash order.
+												return ms.stream().filter(o -> o != null).noneMatch(o -> {
+													IClass oc = cha.lookupClass(((TypedCodeBody)o.getDeclaringClass()).getSelf());
+													return o!=m && (oc.getAllImplementedInterfaces().contains(mc) || cha.isAssignableFrom(mc, oc));
 												});
 											}).toList();
 								}

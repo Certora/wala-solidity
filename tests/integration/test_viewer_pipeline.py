@@ -16,6 +16,7 @@ import json5
 import pytest
 
 from tests.integration.conftest import (
+    ALL_EXACT_FIXTURES,
     REPO_ROOT,
     VIEWER_SCRIPT,
     derive_project_root,
@@ -89,7 +90,7 @@ def test_viewer_from_generated_json(tmp_path):
         result = subprocess.run(cmd, capture_output=True, text=True)
         _assert_pipeline_ok(result, f"{name}/json_viewer", project_root)
 
-        data = validate_viewer_html(output_html)
+        data = validate_viewer_html(output_html, require_non_neither=name not in ALL_EXACT_FIXTURES)
         print(f"  {name}: {len(data['contexts'])} contexts, validated OK")
 
 
@@ -114,7 +115,7 @@ def test_viewer_from_conf(name, conf_path, tmp_path):
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     _assert_pipeline_ok(result, name, project_root)
 
-    data = validate_viewer_html(output_html)
+    data = validate_viewer_html(output_html, require_non_neither=name not in ALL_EXACT_FIXTURES)
     print(f"  {name}: {len(data['contexts'])} contexts, validated OK")
 
 
@@ -178,5 +179,5 @@ def test_fault_nonexistent_solc(name, conf_path, tmp_path):
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     _assert_pipeline_ok(result, f"{name}/fault_solc", project_root)
 
-    data = validate_viewer_html(output_html)
+    data = validate_viewer_html(output_html, require_non_neither=name not in ALL_EXACT_FIXTURES)
     print(f"  {name}: fixer recovered from nonexistent solc, {len(data['contexts'])} contexts")

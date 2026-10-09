@@ -12,6 +12,12 @@
  */
 package com.certora.wala.analysis.rounding;
 
+/**
+ * With the lattice reduced to these four elements, {@link #meet} (join across runs,
+ * used at merges) and {@link #combine} (error composition within one run, used in
+ * arithmetic) compute the same table; both are kept because they assert different
+ * judgments at their call sites.
+ */
 public enum Direction {
 	Inconsistent {
 		@Override
@@ -29,48 +35,10 @@ public enum Direction {
 			return Inconsistent;
 		}
 	},
-	Either {
-		@Override
-		public Direction meet(Direction d) {
-			if (d == Inconsistent) {
-				return Inconsistent;
-			} else {
-				return Either;
-			}
-		}
-
-		@Override
-		public Direction flip() {
-			return Either;
-		}
-
-		@Override
-		public Direction combine(Direction d) {
-			switch (d) {
-			case Neither:
-				return Either;
-			default:
-				return Inconsistent;
-			}
-		}
-	},
 	Neither {
 		@Override
 		public Direction meet(Direction d) {
-			switch (d) {
-			case Neither:
-				return Neither;
-			case Up:
-				return Up;
-			case Down:
-				return Down;
-			case Either:
-				return Either;
-			case Inconsistent:
-				return Inconsistent;
-			default:
-				return Inconsistent;
-			}
+			return d;
 		}
 
 		@Override
@@ -86,18 +54,9 @@ public enum Direction {
 	Up {
 		@Override
 		public Direction meet(Direction d) {
-			switch (d) {
-			case Neither:
+			if (d == Up || d == Neither) {
 				return Up;
-			case Up:
-				return Up;
-			case Down:
-				return Either;
-			case Either:
-				return Either;
-			case Inconsistent:
-				return Inconsistent;
-			default:
+			} else {
 				return Inconsistent;
 			}
 		}
@@ -119,23 +78,13 @@ public enum Direction {
 	Down {
 		@Override
 		public Direction meet(Direction d) {
-			switch (d) {
-			case Neither:
+			if (d == Down || d == Neither) {
 				return Down;
-			case Up:
-				return Either;
-			case Down:
-				return Down;
-			case Either:
-				return Either;
-			case Inconsistent:
-				return Inconsistent;
-			default:
+			} else {
 				return Inconsistent;
 			}
 		}
 
-		
 		@Override
 		public Direction flip() {
 			return Up;
@@ -144,8 +93,7 @@ public enum Direction {
 		@Override
 		public Direction combine(Direction d) {
 			if (d == Down || d == Neither) {
-				return Down
-						;
+				return Down;
 			} else {
 				return Inconsistent;
 			}
