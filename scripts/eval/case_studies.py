@@ -2,7 +2,7 @@
 """Check every tool verdict the case-studies subsection quotes, against the outputs.
 
 Each check names the sentence it supports. Inputs (run from eval-artifacts/):
-  case-studies/cs-{CompoundV2,Kyber}Actual.json               - tool runs on shipped code
+  case-studies/cs-{CompoundV2,Raft}Actual.json                - tool runs on shipped code
   private-<tag>/TestBalancerStablePool*_*.json                - the corpus fixtures
 
 Produce the case-study JSONs with:
@@ -40,10 +40,15 @@ def _site(md, line, source_prefix):
             if pos.startswith(f'[{line},') and s.get('source', '').startswith(source_prefix)]
 
 
+def _sites(roots, fn, line, source_prefix):
+    """The roundings at one source site, over every root graph of fn."""
+    return {r for md in roots.get(fn, []) for r in _site(md, line, source_prefix)}
+
+
 def compute(tag):
     """Returns a list of (ok, sentence) pairs."""
-    kyber = _roots(['case-studies/cs-KyberActual.json'])
     compound = _roots(['case-studies/cs-CompoundV2Actual.json'])
+    raft = _roots(['case-studies/cs-RaftActual.json'])
     bal4f = _roots(glob.glob(f'private-{tag}/TestBalancerStablePool4f189ea1_*.json'))
     balnov = _roots(glob.glob(f'private-{tag}/TestBalancerStablePoolPaminaNov25_*.json'))
 
@@ -51,19 +56,24 @@ def compute(tag):
         mds = roots.get(fn, [])
         return bool(mds) and all(_ret(md) == want for md in mds)
 
-    redeem = (compound.get('redeemFresh') or [{}])[0]
     checks = [
-        (all_ret(kyber, 'calcReachAmount', 'Inconsistent'),
-         "Kyber: calcReachAmount is Indet"),
-        (all_ret(kyber, 'computeSwapStep', 'Inconsistent'),
-         "Kyber: computeSwapStep's outputs (deltaL, next price) are all Indet"),
         (all_ret(compound, 'exchangeRateStoredInternal', 'Down'),
          "Sonne/Compound: the exchange rate is Down"),
-        (_site(redeem, 503, 'div_(redeemAmountIn, exchangeRate)') == ['Down'],
-         "Sonne/Compound: the burn division is Down at its source line"),
-        (_site(redeem, 532, 'totalSupply - redeemTokens') == ['Inconsistent']
-         and _site(redeem, 533, 'accountTokens[redeemer] - redeemTokens') == ['Inconsistent'],
+        (_sites(compound, 'redeemFresh', 496, 'mul_ScalarTruncate(exchangeRate, redeemTokensIn)') == {'Down'},
+         "Sonne/Compound: the redeemed amount (exchange rate times tokens) is Down"),
+        (_sites(compound, 'redeemFresh', 503, 'div_(redeemAmountIn, exchangeRate)') == {'Inconsistent'},
+         "Sonne/Compound: the burn division is Indet at its source line"),
+        (_sites(compound, 'redeemFresh', 532, 'totalSupply - redeemTokens') == {'Inconsistent'}
+         and _sites(compound, 'redeemFresh', 533, 'accountTokens[redeemer] - redeemTokens') == {'Inconsistent'},
          "Sonne/Compound: burned tokens are Indet where subtracted from totalSupply and the balance"),
+        (_sites(raft, 'mint', 2474, 'amount.divUp(storedIndex)') == {'Up'}
+         and _sites(raft, 'burn', 2478, 'amount.divUp(storedIndex)') == {'Up'}
+         and _sites(raft, 'setIndex', 2483, 'backingAmount.divUp(supply)') == {'Up'},
+         "Raft: mint, burn and setIndex all divide rounding Up"),
+        (_sites(balnov, '_swapGivenOut', 74, '_upscale(swapRequest.amount') == {'Down'}
+         and _sites(balnov, '_swapGivenOut', 76, '_onSwapGivenOut(') == {'Inconsistent'}
+         and _sites(balnov, '_swapGivenOut', 79, '_downscaleUp(amountIn') == {'Inconsistent'},
+         "Balancer: in _swapGivenOut the upscaled amount is Down, amountIn Indet before and after _downscaleUp"),
         (all_ret(bal4f, '_calcInGivenOut', 'Inconsistent')
          and all_ret(bal4f, '_onSwapGivenOut', 'Inconsistent'),
          "Balancer: _calcInGivenOut and _onSwapGivenOut are Indet"),

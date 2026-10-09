@@ -2,7 +2,7 @@
 """The paper's corpus table and headline percentages, from a returns extract.
 
 Usage: python3 corpus_table.py <returns-extract>
-Counts deduplicated (test | method | context | return) rows for the 21 corpus
+Counts deduplicated (test | method | context | return) rows for the corpus
 configurations. A result is one returned value's direction: a function returning
 a tuple contributes one result per component, counted in the four direction
 columns like any other result.

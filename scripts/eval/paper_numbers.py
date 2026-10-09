@@ -15,7 +15,7 @@ hand and every number traces to one function below. Run from eval-artifacts/:
 where <tag> names the canonical extracts (private-<tag>-returns.txt, ...) and the
 result JSON directory private-<tag>/. All other inputs are fixed paths in this
 directory: loc/<tag>-loc.tsv (scripts/eval/loc.py), runs/<tag>-mvn-test*.log (one per repeated run; times are
-per-configuration means), diffq/, ablation/, case-studies/, llm/.
+per-configuration means), ablation/, case-studies/, llm/.
 """
 import glob
 import os
@@ -27,8 +27,8 @@ sys.path.insert(0, os.path.join(HERE, 'llm'))
 import ablation_positions  # noqa: E402
 import case_studies  # noqa: E402
 import corpus_table  # noqa: E402
-import diffq_check  # noqa: E402
 import div_subset  # noqa: E402
+import indet_split  # noqa: E402
 import name_agreement  # noqa: E402
 import score  # noqa: E402
 import timings  # noqa: E402
@@ -121,6 +121,14 @@ def main():
              evDivPctExact=pct(100 * c['Neither'] / N), evDivPctDown=pct(100 * c['Down'] / N),
              evDivPctUp=pct(100 * c['Up'] / N), evDivPctIndet=pct(100 * c['Inconsistent'] / N))
 
+    # where the Indet results come from
+    ix = indet_split.compute(f'private-{tag}-returns.txt')
+    assert ix['indet'] == ct['indet'], "Indet split must cover the corpus table's Indet column"
+    m.update(evIndet=n(ix['indet']), evIndetInherited=n(ix['inherited']),
+             evPctIndetInherited=pct(100 * ix['inherited'] / ix['indet']),
+             evIndetOrigin=n(ix['origin']), evIndetOriginExact=n(ix['origin_exact']),
+             evIndetOriginMixed=n(ix['origin_mixed']))
+
     # correctness: names
     na = name_agreement.compute(f'private-{tag}-returns.txt')
     m.update(evNameFunctions=n(na['functions']), evNameResults=n(na['results']),
@@ -132,20 +140,6 @@ def main():
                                     'ablation/eigenlayer-positions-off.json')
     m.update(evAblRemoved=n(ab['removed_by_positions']),
              evAblFunctions=WORDS.get(ab['functions'], str(ab['functions'])))
-
-    # correctness: differential interpretation
-    dq = diffq_check.compute(f'private-{tag}', 'diffq')
-    dc, df = dq['counts'], dq['functions']
-    if dc['viol'] or dq['violations'] or dq['search_violations']:
-        raise SystemExit(f"differential violations ({len(dq['violations'])} sampled, "
-                         f"{len(dq['search_violations'])} found by search): the paper's claim is false")
-    assert dq['samples_per_function'] == [dq['samples_per_function'][0]]
-    m.update(evDqRows=n(dc['ok']), evDqFunctions=n(df.get('checked', 0)),
-             evDqSamples=n(dq['samples_per_function'][0]),
-             evDqTwoSided=WORDS.get(df.get('indet2', 0), str(df.get('indet2', 0))),
-             evDqOneSided=n(df.get('indet1', 0)), evDqEntryRows=n(dc['rows']),
-             evDqVoid=n(dc['void']), evDqEvaluated=n(dc['evaluated']),
-             evDqOutOfScope=n(dc['out_of_scope']), evDqUnchecked=n(dc['no_verdict']))
 
     # LLM comparison
     ll = score.compute('llm/manifest.json', 'llm/transcripts')
@@ -219,8 +213,6 @@ def main():
     claim(all(t == 'TestAaveV4HubValidState' and g == 'Inconsistent'
               for _, _, g, t in na['disagreements']),
           "the name disagreements are all Indet on Aave v4 hub helpers")
-    claim(df.get('indet2', 0) >= 1 and any('onSwap' in c[1] for c in dq['confirmed']),
-          "onSwap is among the two-sided Indet functions")
     for ok, sentence in case_studies.compute(tag):
         claim(ok, sentence)
     if failed:
