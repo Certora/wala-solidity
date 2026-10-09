@@ -133,6 +133,9 @@ public final class QEval {
 			if (rounds == Direction.Up) {
 				return num.add(den).subtract(BigInteger.ONE).divide(den);
 			}
+			if (rounds == Direction.Inconsistent) {
+				throw new Discard("eitherRounding"); // floor or ceiling, by an input Q does not model
+			}
 			return num.divide(den); // floor for the non-negative domain; exact for Neither (den = 1)
 		}
 

@@ -207,7 +207,7 @@ public class RoundingGraphBuilder {
 			return false;
 		}
 		int root = owner[inst.getDef()];
-		put(new RoundingGraph.Div(root, owners(c.dividendFactors), owner[c.divisorVN], Direction.Up, true));
+		put(new RoundingGraph.Div(root, owners(c.dividendFactors), owner[c.divisorVN], ceilingRounds(inst.getDef()), true));
 		coneByRoot.put(root, cone(root, inst, c));
 		return true;
 	}
@@ -241,22 +241,50 @@ public class RoundingGraphBuilder {
 	}
 
 	/**
-	 * The ceiling the definition of {@code vn} computes in this context: Phase 1's, provided
-	 * every phi operand it needs to be infeasible is dead here; otherwise null.
+	 * The ceiling the definition of {@code vn} may compute in this context: Phase 1's, unless a
+	 * guard it needs is constantly false here; otherwise null. {@link #ceilingRounds} says
+	 * whether it is certainly the ceiling.
 	 */
 	private RoundingRecognition.Ceiling activeCeiling(int vn) {
+		return ceilingRounds(vn) == null ? null : recognition.ceiling(vn);
+	}
+
+	/**
+	 * How Phase 1's ceiling at {@code vn} rounds in this context. A ceiling such as
+	 * {@code floor + toUint(roundsUp && N % D > 0)} is one only where its short-circuit guard
+	 * holds. Up: every phi operand that must be infeasible is dead here, so it is the ceiling.
+	 * Null: a guard is constantly false here (all its other operands are dead), so the
+	 * correction never happens and the value is the floor its own nodes compute. Inconsistent:
+	 * the guard depends on an input, such as a rounding mode that is not a constant here, so
+	 * the value is the floor in some runs and the ceiling in others.
+	 */
+	private Direction ceilingRounds(int vn) {
 		RoundingRecognition.Ceiling c = recognition.ceiling(vn);
 		if (c == null || isPosition.test(vn)) {
 			return null;
 		}
+		Map<SSAPhiInstruction, Set<Integer>> needed = new LinkedHashMap<>();
 		for (int[] dead : c.deadPhiOperands) {
-			SSAPhiInstruction phi = (SSAPhiInstruction) du.getDef(dead[0]);
+			needed.computeIfAbsent((SSAPhiInstruction) du.getDef(dead[0]), k -> HashSetFactory.make()).add(dead[1]);
+		}
+		boolean certain = true;
+		for (Map.Entry<SSAPhiInstruction, Set<Integer>> e : needed.entrySet()) {
+			SSAPhiInstruction phi = e.getKey();
 			MutableIntSet rvals = feasibility.deadPhiRvals().get(phi);
-			if (rvals == null || !rvals.contains(phi.getUse(dead[1]))) {
+			boolean othersDead = true;
+			for (int i = 0; i < phi.getNumberOfUses(); i++) {
+				boolean dead = rvals != null && rvals.contains(phi.getUse(i));
+				if (e.getValue().contains(i)) {
+					certain &= dead;
+				} else {
+					othersDead &= dead;
+				}
+			}
+			if (othersDead) {
 				return null;
 			}
 		}
-		return c;
+		return certain ? Direction.Up : Direction.Inconsistent;
 	}
 
 	/**

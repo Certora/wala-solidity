@@ -90,8 +90,10 @@ public class RoundingGraph {
 	/**
 	 * {@code round(N1 * ... * Nk / D)}, where {@code rounds} is the direction of the rounding
 	 * operation itself: Down for a plain division or right shift, Up for a recognized ceiling
-	 * idiom or the {@code (a+b-1)/b} bias, Neither for a division by one. The paper's DivDown and
-	 * DivUp differ only in this constant. {@code idiom} marks a node that stands for a whole
+	 * idiom or the {@code (a+b-1)/b} bias, Neither for a division by one, Inconsistent for a
+	 * ceiling idiom whose guard (a rounding mode) is not a constant in this context, which is the
+	 * floor in some runs and the ceiling in others. The paper's DivDown and DivUp differ only in
+	 * this constant. {@code idiom} marks a node that stands for a whole
 	 * recognized ceiling, whose scaffolding values are absorbed.
 	 */
 	public record Div(int vn, int[] numerator, int divisor, Direction rounds, boolean idiom) implements Node {
