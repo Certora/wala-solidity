@@ -115,6 +115,15 @@ public class JSONToCAst {
 
 	private final Deque<ReturnTarget> returnTargets = new ArrayDeque<>();
 
+	/** The multiplier each Solidity unit suffix applies to a number literal. */
+	private static final Map<String, BigInteger> SUBDENOMINATIONS = Map.ofEntries(
+		Map.entry("wei", BigInteger.ONE), Map.entry("gwei", BigInteger.TEN.pow(9)),
+		Map.entry("szabo", BigInteger.TEN.pow(12)), Map.entry("finney", BigInteger.TEN.pow(15)),
+		Map.entry("ether", BigInteger.TEN.pow(18)),
+		Map.entry("seconds", BigInteger.ONE), Map.entry("minutes", BigInteger.valueOf(60)),
+		Map.entry("hours", BigInteger.valueOf(3600)), Map.entry("days", BigInteger.valueOf(86400)),
+		Map.entry("weeks", BigInteger.valueOf(604800)), Map.entry("years", BigInteger.valueOf(31536000)));
+
 	private final CAst ast = new CAstImpl();
 	private final Map<Object, CAstType> entityTypes = HashMapFactory.make();
 	private final Map<CAstType, Set<String>> supers = HashMapFactory.make();
@@ -1401,6 +1410,14 @@ public class JSONToCAst {
 				case "number": 
 					Number n;
 					String rawValue = o.getString("value").replace("_", "");
+					BigInteger unit = o.has("subdenomination") && !o.isNull("subdenomination")
+							? SUBDENOMINATIONS.get(o.getString("subdenomination")) : null;
+					if (unit != null) {
+						// "1 weeks" is 604800 and "0.5 ether" is 5e17: the unit is part of the value
+						BigDecimal scaled = (rawValue.startsWith("0x") ? new BigDecimal(new BigInteger(rawValue.substring(2), 16))
+								: new BigDecimal(rawValue)).multiply(new BigDecimal(unit));
+						rawValue = scaled.toBigIntegerExact().toString();
+					}
 					try {
 						int radix = 10;
 						String biv = rawValue;
