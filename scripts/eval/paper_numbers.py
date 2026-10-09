@@ -4,7 +4,6 @@
 Writes, under <paper>/generated/:
   eval-numbers.tex   \\newcommand macros for every number in the prose
   corpus-table.tex   the rows of the corpus table, plus its total row
-  llm-table.tex      the rows of the LLM-outcome table
   loc-table.tex      the rows of the lines-of-code table
 
 The paper uses only these macros and fragments, so no reported number is typed by
@@ -15,7 +14,10 @@ hand and every number traces to one function below. Run from eval-artifacts/:
 where <tag> names the canonical extracts (private-<tag>-returns.txt, ...) and the
 result JSON directory private-<tag>/. All other inputs are fixed paths in this
 directory: loc/<tag>-loc.tsv (scripts/eval/loc.py), runs/<tag>-mvn-test*.log (one per repeated run; times are
-per-configuration means), ablation/, case-studies/, llm/.
+per-configuration means), ablation/, case-studies/.
+
+The LLM comparison (the rename study) is not generated here; its table is written by
+hand from llm_agent/score_rename.py's output.
 """
 import glob
 import os
@@ -23,14 +25,12 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, 'llm'))
 import ablation_positions  # noqa: E402
 import case_studies  # noqa: E402
 import corpus_table  # noqa: E402
 import div_subset  # noqa: E402
 import indet_split  # noqa: E402
 import name_agreement  # noqa: E402
-import score  # noqa: E402
 import timings  # noqa: E402
 from corpus import EXCLUDED, PROT, PROTOCOL  # noqa: E402
 
@@ -61,7 +61,6 @@ assert set(DISPLAY) == PROT, "DISPLAY must name exactly the corpus configuration
 
 WORDS = {1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven',
          8: 'eight', 9: 'nine', 10: 'ten'}
-MODELS = [('claude-opus-5-5', 'Opus'), ('claude-sonnet-5', 'Sonnet')]
 
 
 def _loc(path):
@@ -141,31 +140,6 @@ def main():
     m.update(evAblRemoved=n(ab['removed_by_positions']),
              evAblFunctions=WORDS.get(ab['functions'], str(ab['functions'])))
 
-    # LLM comparison
-    ll = score.compute('llm/manifest.json', 'llm/transcripts')
-    bo = ll['by_outcome']
-    m['evLlmItems'] = n(ll['items'])
-    for model, short in MODELS:
-        wrong = sum(bo[(model, cond)]['wrong-direction'] for cond in ('named', 'anon'))
-        m[f'evLlm{short}Wrong'] = WORDS.get(wrong, str(wrong))
-    m['evLlmToolWrong'] = WORDS.get(bo[('tool', '-')]['wrong-direction'], 'zero') \
-        if bo[('tool', '-')]['wrong-direction'] else 'zero'
-    m['evLlmToolRefusals'] = WORDS.get(bo[('tool', '-')]['refusal'], str(bo[('tool', '-')]['refusal']))
-    gs = ll['group_sizes']
-    m.update(evLlmNameItems=n(gs.get('name', 0)), evLlmExploitItems=WORDS.get(gs.get('exploit', 0)),
-             evLlmWitnessItems=WORDS.get(gs.get('witness', 0)))
-    # model outcomes on exactly the items the tool refuses
-    refused = {x['id'] for x in ll['rows'] if x['system'] == 'tool' and x['outcome'] == 'refusal'}
-    for model, short in MODELS:
-        for cond, cname in (('named', 'Named'), ('anon', 'Anon')):
-            oc = {o: 0 for o in score.OUTCOMES}
-            for x in ll['rows']:
-                if x['system'] == model and x['cond'] == cond and x['id'] in refused:
-                    oc[x['outcome']] += 1
-            for o, oname in (('correct', 'Correct'), ('refusal', 'Refusal'),
-                             ('wrong-direction', 'Wrong')):
-                m[f'evLlmRef{short}{cname}{oname}'] = WORDS.get(oc[o], str(oc[o])) if oc[o] else 'none'
-
     # ------------------------------------------------------------------
     # Qualitative claims the prose makes. Each one is checked here, so a
     # regeneration that makes a sentence false fails instead of shipping it.
@@ -176,40 +150,9 @@ def main():
         if not ok:
             failed.append(sentence)
 
-    def oc(system, cond):
-        return bo[(system, cond)]
-
-    def ans(system, cond, iid):
-        return next(x['answer'] for x in ll['rows']
-                    if x['system'] == system and x['cond'] == cond and x['id'] == iid)
-
-    tool_c = oc('tool', '-')['correct']
-    opus, son = 'claude-opus-5-5', 'claude-sonnet-5'
     claim(multi == ['Aave v4', 'Balancer', 'Morpho', 'Tokemak']
           and all(list(PROTOCOL.values()).count(p) == 2 for p in multi),
           "the protocols with two configurations each are Aave v4, Balancer, Morpho, Tokemak")
-    claim(oc('tool', '-')['wrong-direction'] == 0, "the tool never answers a wrong direction")
-    claim(oc('tool', '-')['refusal'] == len(refused), "every tool miss is a refusal")
-    claim(oc(son, 'named')['correct'] > tool_c and oc(opus, 'anon')['correct'] > tool_c
-          and oc(opus, 'named')['correct'] == tool_c,
-          "named Sonnet and anonymized Opus answer more questions correctly than the tool; "
-          "named Opus matches it")
-    claim(oc(opus, 'anon')['correct'] > oc(opus, 'named')['correct'],
-          "Opus does better without the names than with them")
-    hard = [x['id'] for x in ll['rows'] if x['system'] == 'tool' and x['group'] in ('review', 'witness')]
-    for cond in ('named', 'anon'):
-        claim(all(ans(opus, cond, i) == 'Indeterminate' for i in hard),
-              f"Opus ({cond}) answers every reviewed and witnessed case correctly")
-        claim(sum(ans(son, cond, i) != 'Indeterminate' for i in hard) == 1
-              and ans(son, cond, 'witness-cozy-convert') != 'Indeterminate',
-              f"Sonnet ({cond}) misses exactly one of them, the Cozy witness")
-    claim(ans(son, 'named', 'witness-cozy-convert') == 'Down',
-          "named Sonnet answers Down for the witnessed Cozy conversion")
-    claim(oc(opus, 'named')['wrong-direction'] == 0 and oc(opus, 'anon')['wrong-direction'] >= 1,
-          "named Opus gives no wrong direction, but gives one on the same code without names")
-    claim(oc(opus, 'named')['refusal'] >= len(refused)
-          and all(ans(opus, 'named', i) == 'Indeterminate' for i in refused),
-          "named Opus refuses every function the tool refuses")
     claim(all(t == 'TestAaveV4HubValidState' and g == 'Inconsistent'
               for _, _, g, t in na['disagreements']),
           "the name disagreements are all Indet on Aave v4 hub helpers")
@@ -258,21 +201,7 @@ def main():
             f.write(f"{label} & {n(c)} & {n(a)} \\\\\n")
         f.write("\\bottomrule\n\\end{tabular}\n")
 
-    # LLM outcome table rows
-    with open(os.path.join(out, 'llm-table.tex'), 'w') as f:
-        f.write(f"% GENERATED by scripts/eval/paper_numbers.py {tag} - do not edit\n")
-        f.write("\\begin{tabular}{lrrrr}\n\\toprule\n"
-                " & correct & refused & wrong direction & unparsed \\\\\n\\midrule\n")
-        rows = [('\\tool', ('tool', '-'))]
-        for model, short in MODELS:
-            rows += [(f"{short}, named", (model, 'named')), (f"{short}, anonymized", (model, 'anon'))]
-        for label, key in rows:
-            o = bo[key]
-            f.write(f"{label} & {o['correct']} & {o['refusal']} & {o['wrong-direction']}"
-                    f" & {o['unparsed']} \\\\\n")
-        f.write("\\bottomrule\n\\end{tabular}\n")
-
-    print(f"wrote {len(m)} macros and three tables under {out}")
+    print(f"wrote {len(m)} macros and two tables under {out}")
     for k, v in m.items():
         print(f"  \\{k} = {v}")
 
