@@ -55,6 +55,7 @@ import com.ibm.wala.cast.tree.CAstType;
 import com.ibm.wala.cast.tree.impl.CAstImpl;
 import com.ibm.wala.cast.tree.impl.CAstOperator;
 import com.ibm.wala.cfg.ControlFlowGraph;
+import com.certora.wala.cast.solidity.translator.BaseCallSiteReference;
 import com.ibm.wala.classLoader.CallSiteReference;
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
@@ -145,7 +146,13 @@ public abstract class SolidityAnalysisEngine<A> extends AbstractAnalysisEngine<I
 					final Set<CGNode> targets = HashSetFactory.make();
 					final Set<IMethod> targetMethods = HashSetFactory.make();
 
-					if ((recv = v[0].getConcreteType()) != null &&
+					if (site instanceof BaseCallSiteReference) {
+						// Base.f(...): bound to the named function's own body, no dispatch on self
+						IClass named = cha.lookupClass(site.getDeclaredTarget().getDeclaringClass());
+						if (named instanceof DynamicCodeBody && ((DynamicCodeBody)named).getCodeBody() != null) {
+							targetMethods.add(((DynamicCodeBody)named).getCodeBody());
+						}
+					} else if ((recv = v[0].getConcreteType()) != null &&
 							recv instanceof TypedCodeBody && 
 							(((TypedCodeBody)recv).isVirtual() || 
 									site.getInvocationCode() == Dispatch.SPECIAL ||

@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.certora.wala.cast.solidity.loader.ContractType;
 import com.certora.wala.cast.solidity.loader.EnumType;
 import com.certora.wala.cast.solidity.loader.FunctionType;
 import com.certora.wala.cast.solidity.loader.SolidityLoader;
@@ -300,8 +301,13 @@ public class SolidityAstTranslator extends AstTranslator {
 				}
 			}
 
+			// An explicit base-contract call Base.f(...) is bound statically to Base's f: Solidity
+			// does no virtual dispatch on it, so the most derived override must not be chosen.
+			boolean baseCall = callee.getKind() == CAstNode.OBJECT_REF && isBaseContractRef(context, callee.getChild(0));
+
 			int instNum = context.cfg().getCurrentInstruction();
-			CallSiteReference csr = CallSiteReference.make(instNum, m, superCall? Dispatch.SPECIAL: Dispatch.VIRTUAL);
+			CallSiteReference csr = baseCall? new BaseCallSiteReference(instNum, m)
+					: CallSiteReference.make(instNum, m, superCall? Dispatch.SPECIAL: Dispatch.VIRTUAL);
 
 			Position[] operandPos;
 			if (m.getNumberOfParameters() == argsAndSelf.length && call.getChild(0).getKind() == CAstNode.OBJECT_REF) {
@@ -333,6 +339,12 @@ public class SolidityAstTranslator extends AstTranslator {
 		}
 	}
 
+	/** The name of a contract (not a library or interface) used as the base of a member access, as in {@code Base.f}. */
+	private static boolean isBaseContractRef(WalkContext context, CAstNode n) {
+		return n.getKind() == CAstNode.TYPE_LITERAL_EXPR
+				&& context.top().getNodeTypeMap().getNodeType(n) instanceof ContractType;
+	}
+
 	@Override
 	protected void doFieldRead(WalkContext context, int result, int receiver, CAstNode elt, CAstNode parent) {
 		CAstEntity code = context.top();
@@ -346,6 +358,11 @@ public class SolidityAstTranslator extends AstTranslator {
 			NewSiteReference ns = NewSiteReference.make(context.cfg().getCurrentInstruction(), t);
 			context.cfg().addInstruction(insts.NewInstruction(ns.getProgramCounter(), result, ns));
 			FieldReference self = FieldReference.findOrCreate(SolidityTypes.function, Atom.findOrCreateUnicodeAtom("self"), SolidityTypes.root);
+			if (isBaseContractRef(context, parent.getChild(0))) {
+				// Base.f runs on this contract's own state, like super.f
+				receiver = context.currentScope().allocateTempValue();
+				context.cfg().addInstruction(insts.GetInstruction(context.cfg().getCurrentInstruction(), receiver, 1, self));
+			}
 			context.cfg().addInstruction(insts.PutInstruction(context.cfg().getCurrentInstruction(), result, receiver, self));
 		} else {
 			int instNum = context.cfg().getCurrentInstruction();
