@@ -37,14 +37,18 @@ import com.ibm.wala.ssa.SSAArrayStoreInstruction;
 import com.ibm.wala.ssa.SSABinaryOpInstruction;
 import com.ibm.wala.ssa.SSACFG.BasicBlock;
 import com.ibm.wala.ssa.SSACheckCastInstruction;
+import com.ibm.wala.ssa.SSAGetInstruction;
 import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.ssa.SSAInstruction.Visitor;
 import com.ibm.wala.ssa.SSAInvokeInstruction;
+import com.ibm.wala.ssa.SSANewInstruction;
 import com.ibm.wala.ssa.SSAPhiInstruction;
 import com.ibm.wala.ssa.SSAPiInstruction;
+import com.ibm.wala.ssa.SSAPutInstruction;
 import com.ibm.wala.ssa.SSAReturnInstruction;
 import com.ibm.wala.ssa.SSAUnaryOpInstruction;
 import com.ibm.wala.ssa.SymbolTable;
+import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.collections.HashMapFactory;
 import com.ibm.wala.util.collections.HashSetFactory;
 import com.ibm.wala.util.graph.dominators.Dominators;
@@ -363,7 +367,30 @@ public class RoundingGraphBuilder {
 		@Override
 		public void visitInvoke(SSAInvokeInstruction instruction) {
 			if (instruction.hasDef()) {
-				result = new RoundingGraph.Call(o, instruction);
+				result = new RoundingGraph.Call(o, instruction, null);
+			}
+		}
+
+		@Override
+		public void visitGet(SSAGetInstruction instruction) {
+			// a component of a tuple: the value stored into a tuple built here, or that component
+			// of a call's result; any other field read stays unmodelled
+			FieldReference f = instruction.getDeclaredField();
+			if (instruction.isStatic() || !PositionValues.isTupleComponent(f)) {
+				return;
+			}
+			SSAInstruction def = du.getDef(instruction.getRef());
+			if (def instanceof SSANewInstruction) {
+				Iterator<SSAInstruction> uses = du.getUses(instruction.getRef());
+				while (uses.hasNext()) {
+					if (uses.next() instanceof SSAPutInstruction put && put.getRef() == instruction.getRef()
+							&& put.getDeclaredField().getName().equals(f.getName())) {
+						result = new RoundingGraph.Assign(o, owner[put.getVal()]);
+						return;
+					}
+				}
+			} else if (def instanceof SSAAbstractInvokeInstruction call) {
+				result = new RoundingGraph.Call(o, call, f);
 			}
 		}
 	}

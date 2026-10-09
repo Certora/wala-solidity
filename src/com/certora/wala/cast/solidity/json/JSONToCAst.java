@@ -102,10 +102,13 @@ public class JSONToCAst {
 	 */
 	private static final class ReturnTarget {
 		final List<String> names;
+		/** The tuple of the return variables' types, for destructuring a returned tuple into them. */
+		final CAstType type;
 		final JSONObject exit;
 
-		ReturnTarget(List<String> names, JSONObject exit) {
+		ReturnTarget(List<String> names, CAstType type, JSONObject exit) {
 			this.names = names;
+			this.type = type;
 			this.exit = exit;
 		}
 	}
@@ -1232,7 +1235,10 @@ public class JSONToCAst {
 					if (retNames.isEmpty()) {
 						body = visit(o.getJSONObject("body"), child);
 					} else {
-						returnTargets.push(new ReturnTarget(retNames, exitKey));
+						CAstType retTuple = SolidityTupleType.get(Streams.stream(retParams.iterator())
+							.map(x -> getType((JSONObject)x, context))
+							.toArray(i -> new CAstType[i]));
+						returnTargets.push(new ReturnTarget(retNames, retTuple, exitKey));
 						try {
 							body = visit(o.getJSONObject("body"), child);
 						} finally {
@@ -1557,8 +1563,7 @@ public class JSONToCAst {
 			/**
 			 * A {@code return} inside a value-returning function, as assignments to the return
 			 * variables followed by a jump to the function's exit. Returns null when there is no such
-			 * exit (a void function) or the returned value cannot be split over the return variables,
-			 * leaving the statement to translate as an ordinary return.
+			 * exit (a void function), leaving the statement to translate as an ordinary return.
 			 */
 			private CAstNode returnThroughExit(JSONObject o, SolidityWalkContext context) {
 				ReturnTarget target = returnTargets.peek();
@@ -1568,19 +1573,19 @@ public class JSONToCAst {
 				List<CAstNode> stmts = new ArrayList<>();
 				if (o.has("expression")) {
 					JSONObject value = o.getJSONObject("expression");
-					List<JSONObject> parts = new ArrayList<>();
 					if (target.names.size() == 1) {
-						parts.add(value);
-					} else if ("TupleExpression".equals(value.getString("nodeType"))
-							&& value.getJSONArray("components").length() == target.names.size()) {
-						value.getJSONArray("components").forEach(c -> parts.add((JSONObject) c));
-					} else {
-						return null; // e.g. returning a tuple-valued call: keep the direct return
-					}
-					for (int i = 0; i < parts.size(); i++) {
 						stmts.add(ast.makeNode(CAstNode.ASSIGN,
-							ast.makeNode(CAstNode.VAR, ast.makeConstant(target.names.get(i))),
-							visit(parts.get(i), context)));
+							ast.makeNode(CAstNode.VAR, ast.makeConstant(target.names.get(0))),
+							visit(value, context)));
+					} else {
+						// destructure, so every returned value is computed before any return variable
+						// is written ("return (y, x)" swaps) and a tuple-valued call is split too
+						stmts.add(ast.makeNode(CAstNode.ASSIGN,
+							ast.makeNode(CAstNode.NEW, ast.makeConstant(target.type),
+								target.names.stream()
+									.map(name -> ast.makeNode(CAstNode.VAR, ast.makeConstant(name)))
+									.toArray(i -> new CAstNode[i])),
+							visit(value, context)));
 					}
 				}
 				CAstNode goExit = ast.makeNode(CAstNode.GOTO);

@@ -17,6 +17,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Set;
 
+import com.certora.wala.cast.solidity.types.SolidityTypes;
 import com.ibm.wala.classLoader.CallSiteReference;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
@@ -29,6 +30,7 @@ import com.ibm.wala.ssa.SSAGetInstruction;
 import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.ssa.SSAPutInstruction;
 import com.ibm.wala.ssa.SSAReturnInstruction;
+import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.collections.HashSetFactory;
 import com.ibm.wala.util.collections.Pair;
 
@@ -129,7 +131,8 @@ public class PositionValues {
 				} else if (inst instanceof SSAArrayStoreInstruction) {
 					mark(n, ((SSAArrayStoreInstruction) inst).getIndex(), found, worklist);
 					mark(n, ((SSAArrayStoreInstruction) inst).getArrayRef(), found, worklist);
-				} else if (inst instanceof SSAGetInstruction && !((SSAGetInstruction) inst).isStatic()) {
+				} else if (inst instanceof SSAGetInstruction && !((SSAGetInstruction) inst).isStatic()
+						&& !isTupleComponent(((SSAGetInstruction) inst).getDeclaredField())) {
 					mark(n, ((SSAGetInstruction) inst).getRef(), found, worklist);
 				} else if (inst instanceof SSAPutInstruction && !((SSAPutInstruction) inst).isStatic()) {
 					mark(n, ((SSAPutInstruction) inst).getRef(), found, worklist);
@@ -160,6 +163,9 @@ public class PositionValues {
 					}
 				}
 			}
+		} else if (def instanceof SSAGetInstruction get && !get.isStatic() && isTupleComponent(get.getDeclaredField())) {
+			// a tuple component is part of the tuple's value, not a read through a location
+			mark(n, get.getRef(), found, worklist);
 		} else if (def != null && !(def instanceof SSAGetInstruction) && !(def instanceof SSAArrayLoadInstruction)) {
 			// arithmetic, phis, conversions: their operands feed the amount (a load starts a fresh value)
 			for (int i = 0; i < def.getNumberOfUses(); i++) {
@@ -183,6 +189,11 @@ public class PositionValues {
 				}
 			}
 		}
+	}
+
+	/** A field of a Solidity tuple: a component of a multi-value result, not a memory location. */
+	public static boolean isTupleComponent(FieldReference f) {
+		return f.getDeclaringClass().equals(SolidityTypes.tuple);
 	}
 
 	private static <T> Iterable<T> iterable(Iterator<T> it) {

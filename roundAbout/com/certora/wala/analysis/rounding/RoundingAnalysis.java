@@ -383,9 +383,30 @@ public class RoundingAnalysis {
 
 			class CallOperator extends AbstractOperator<RoundingVariable> {
 				private final SSAAbstractInvokeInstruction callInst;
+				/** The tuple component this equation defines, or null for the call's own result. */
+				private final FieldReference component;
 
-				public CallOperator(SSAAbstractInvokeInstruction inst) {
+				public CallOperator(SSAAbstractInvokeInstruction inst, FieldReference component) {
 					this.callInst = inst;
+					this.component = component;
+				}
+
+				/**
+				 * The callee's direction for what this equation defines. Components are matched by
+				 * position, since caller and callee may declare different component types. A tuple
+				 * seen as one value rounds as all its components together.
+				 */
+				private Direction resultOf(Map<FieldReference, Direction> callee) {
+					if (component == null) {
+						return callee.containsKey(null) ? callee.get(null)
+								: callee.values().stream().reduce(Direction.Neither, Direction::meet);
+					}
+					for (Map.Entry<FieldReference, Direction> e : callee.entrySet()) {
+						if (e.getKey() != null && e.getKey().getName().equals(component.getName())) {
+							return e.getValue();
+						}
+					}
+					return Direction.Neither;
 				}
 
 				@Override
@@ -417,8 +438,8 @@ public class RoundingAnalysis {
 										throw new RuntimeException("analysis of " + cgn + " was cancelled", e);
 									}
 								}
-								if (directionalCalls.containsKey(key) && directionalCalls.get(key).containsKey(null)) {
-									d = d.meet(directionalCalls.get(key).get(null));
+								if (directionalCalls.containsKey(key)) {
+									d = d.meet(resultOf(directionalCalls.get(key)));
 								}
 							}
 						}
@@ -434,17 +455,18 @@ public class RoundingAnalysis {
 
 				@Override
 				public int hashCode() {
-					return callInst.hashCode() * 17;
+					return callInst.hashCode() * 17 + Objects.hashCode(component);
 				}
 
 				@Override
 				public boolean equals(Object o) {
-					return o != null && o.getClass() == getClass() && callInst.equals(((CallOperator) o).callInst);
+					return o != null && o.getClass() == getClass() && callInst.equals(((CallOperator) o).callInst)
+							&& Objects.equals(component, ((CallOperator) o).component);
 				}
 
 				@Override
 				public String toString() {
-					return "call " + callInst;
+					return "call " + callInst + (component == null ? "" : " ." + component.getName());
 				}
 
 			}
@@ -478,7 +500,7 @@ public class RoundingAnalysis {
 					rhs[i] = vars.get(Q.node(operands[i]).vn());
 				}
 				AbstractOperator<RoundingVariable> op = nd instanceof RoundingGraph.Call c
-						? new CallOperator(c.site())
+						? new CallOperator(c.site(), c.component())
 						: new NodeOperator(nd);
 				newStatement(lhs, op, rhs, false, false);
 			}

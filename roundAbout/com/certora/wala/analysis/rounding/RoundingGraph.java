@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.ibm.wala.ssa.SSAAbstractInvokeInstruction;
+import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.graph.labeled.NumberedLabeledGraph;
 import com.ibm.wala.util.graph.labeled.SlowSparseNumberedLabeledGraph;
 
@@ -127,8 +128,12 @@ public class RoundingGraph {
 	public record Load(int vn, int index) implements Node {
 	}
 
-	/** A call: summaries and callee recursion are keyed by directions, so its transfer lives in Phase 2. */
-	public record Call(int vn, SSAAbstractInvokeInstruction site) implements Node {
+	/**
+	 * A call: summaries and callee recursion are keyed by directions, so its transfer lives in Phase 2.
+	 * With a {@code component}, {@code vn} is that component of the tuple the call returns (a
+	 * destructuring {@code (x, y) = f(...)} reads each one); without, it is the call's own result.
+	 */
+	public record Call(int vn, SSAAbstractInvokeInstruction site, FieldReference component) implements Node {
 	}
 
 	/** The operands whose values flow into the node, in transfer-function order. */

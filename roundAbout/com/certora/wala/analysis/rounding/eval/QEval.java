@@ -15,6 +15,7 @@ package com.certora.wala.analysis.rounding.eval;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +37,9 @@ import com.ibm.wala.ssa.SSACFG;
 import com.ibm.wala.ssa.SSAConditionalBranchInstruction;
 import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.ssa.SSAPhiInstruction;
+import com.ibm.wala.ssa.SSAPutInstruction;
 import com.ibm.wala.ssa.SymbolTable;
+import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.graph.dominators.Dominators;
 
 /**
@@ -284,6 +287,11 @@ public final class QEval {
 		}
 
 		V evalMethod(CGNode n, List<V> args) {
+			return evalMethod(n, args, null);
+		}
+
+		/** The method's returned value, or with a {@code component}, that component of its returned tuple. */
+		V evalMethod(CGNode n, List<V> args, FieldReference component) {
 			if (!active.add(n)) {
 				throw new Discard("recursion");
 			}
@@ -296,7 +304,16 @@ public final class QEval {
 				if (rets.length != 1) {
 					throw new Discard("returns" + rets.length);
 				}
-				return eval(n, q, new HashMap<>(), args, rets[0]);
+				if (component == null) {
+					return eval(n, q, new HashMap<>(), args, rets[0]);
+				}
+				for (Iterator<SSAInstruction> uses = code(n).du().getUses(rets[0]); uses.hasNext();) {
+					if (uses.next() instanceof SSAPutInstruction put && put.getRef() == rets[0]
+							&& put.getDeclaredField().getName().equals(component.getName())) {
+						return eval(n, q, new HashMap<>(), args, put.getVal());
+					}
+				}
+				throw new Discard("tupleComponent");
 			} finally {
 				active.remove(n);
 			}
@@ -376,7 +393,7 @@ public final class QEval {
 				for (int i = 0; i < uses; i++) {
 					callArgs.add(eval(n, q, memo, args, c.site().getUse(i)));
 				}
-				yield evalMethod(callee, callArgs);
+				yield evalMethod(callee, callArgs, c.component());
 			}
 			case RoundingGraph.Bitwise b -> throw new Discard("bitwise");
 			case RoundingGraph.Merge m -> phiMerge(n, q, memo, args, vn);

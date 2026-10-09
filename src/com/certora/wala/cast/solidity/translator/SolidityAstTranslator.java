@@ -462,22 +462,31 @@ public class SolidityAstTranslator extends AstTranslator {
 		return false;
 	}
 
+	/**
+	 * Destructuring {@code (x, , y) = rhs}. CAstVisitor's fallback passes the assignment node
+	 * and the right-hand side in the opposite order to {@code visitAssignNodes}, and has
+	 * already translated the right-hand side. Each variable gets its own component, read from
+	 * the tuple after the whole right-hand side is evaluated, so {@code (x, y) = (y, x)} swaps.
+	 */
 	@Override
-	protected boolean doVisitAssignNodes(CAstNode n, WalkContext context, CAstNode v, CAstNode a,
+	protected boolean doVisitAssignNodes(CAstNode n, WalkContext context, CAstNode assign, CAstNode rhs,
 			CAstVisitor<WalkContext> visitor) {
-		visitor.visit(a, context, visitor);
 		if (n.getKind() == CAstNode.NEW && n.getChild(0).getValue() instanceof SolidityTupleType) {
 			SolidityTupleType t = (SolidityTupleType) n.getChild(0).getValue();
-			int rval = context.getValue(a);
+			int rval = context.getValue(rhs);
 			for(int i = 1; i < n.getChildCount(); i++) {
 				if (n.getChild(i).getKind() == CAstNode.VAR) {
-					doLocalWrite(context, (String)n.getChild(i).getChild(0).getValue(), SolidityCAstType.getIRType(t.getElement(i-1)), rval);
+					TypeReference eltType = SolidityCAstType.getIRType(t.getElement(i-1));
+					int component = context.currentScope().allocateTempValue();
+					context.cfg().addInstruction(insts.GetInstruction(context.cfg().getCurrentInstruction(), component, rval,
+							FieldReference.findOrCreate(SolidityTypes.tuple, Atom.findOrCreateUnicodeAtom(""+(i-1)), eltType)));
+					doLocalWrite(context, (String)n.getChild(i).getChild(0).getValue(), eltType, component);
 				}
 			}
 			
 			return true;
 		} else {
-			return super.doVisitAssignNodes(n, context, v, a, visitor);
+			return super.doVisitAssignNodes(n, context, assign, rhs, visitor);
 		}
 	}
 
