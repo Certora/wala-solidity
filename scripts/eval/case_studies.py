@@ -3,6 +3,7 @@
 
 Each check names the sentence it supports. Inputs (run from eval-artifacts/):
   case-studies/cs-{CompoundV2,Raft}Actual.json                - tool runs on shipped code
+  case-studies/cs-CompoundV2Fixed.json                        - Compound v2 with the burn rounded up
   private-<tag>/TestBalancerStablePool*_*.json                - the corpus fixtures
 
 Produce the case-study JSONs with:
@@ -48,6 +49,7 @@ def _sites(roots, fn, line, source_prefix):
 def compute(tag):
     """Returns a list of (ok, sentence) pairs."""
     compound = _roots(['case-studies/cs-CompoundV2Actual.json'])
+    compound_fixed = _roots(['case-studies/cs-CompoundV2Fixed.json'])
     raft = _roots(['case-studies/cs-RaftActual.json'])
     bal4f = _roots(glob.glob(f'private-{tag}/TestBalancerStablePool4f189ea1_*.json'))
     balnov = _roots(glob.glob(f'private-{tag}/TestBalancerStablePoolPaminaNov25_*.json'))
@@ -63,9 +65,8 @@ def compute(tag):
          "Sonne/Compound: the redeemed amount (exchange rate times tokens) is Down"),
         (_sites(compound, 'redeemFresh', 503, 'div_(redeemAmountIn, exchangeRate)') == {'Inconsistent'},
          "Sonne/Compound: the burn division is Indet at its source line"),
-        (_sites(compound, 'redeemFresh', 532, 'totalSupply - redeemTokens') == {'Inconsistent'}
-         and _sites(compound, 'redeemFresh', 533, 'accountTokens[redeemer] - redeemTokens') == {'Inconsistent'},
-         "Sonne/Compound: burned tokens are Indet where subtracted from totalSupply and the balance"),
+        (_sites(compound_fixed, 'redeemFresh', 503, '(redeemAmountIn * expScale + m - 1) / m') == {'Up'},
+         "Sonne/Compound: with the burn division rounded up, the same line is Up"),
         (_sites(raft, 'mint', 2474, 'amount.divUp(storedIndex)') == {'Up'}
          and _sites(raft, 'burn', 2478, 'amount.divUp(storedIndex)') == {'Up'}
          and _sites(raft, 'setIndex', 2483, 'backingAmount.divUp(supply)') == {'Up'},
