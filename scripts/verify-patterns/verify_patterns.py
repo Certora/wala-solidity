@@ -22,7 +22,7 @@ Run: python3 verify_patterns.py   (needs pip package z3-solver)
 import itertools
 import time
 
-from z3 import (And, BitVec, BitVecVal, If, Int, LShR, Not, Solver, UDiv, ULT, sat,
+from z3 import (And, BitVec, BitVecVal, Bool, If, Int, LShR, Not, Solver, UDiv, ULT, sat,
                 unsat)
 
 _fresh = itertools.count()
@@ -57,6 +57,15 @@ def _(s):
     s.add(n >= 0, d >= 1)
     q, r = floordiv(s, n, d)
     s.add(Not(q + If(r != 0, 1, 0) == ceil(s, n, d)))
+
+
+@schema("flag: N/D + [f && N%D != 0]  =>  ceil(N/D) when f, floor(N/D) when not f")
+def _(s):
+    n, d, f = Int('N'), Int('D'), Bool('f')
+    s.add(n >= 0, d >= 1)
+    q, r = floordiv(s, n, d)
+    # Phase 1 rewrites per calling context: divUp where f is known true, divDown where known false
+    s.add(Not(q + If(And(f, r != 0), 1, 0) == If(f, ceil(s, n, d), q)))
 
 
 @schema("guarded predecrement: N != 0 |- (N-1)/D + 1  =>  ceil(N/D)")
