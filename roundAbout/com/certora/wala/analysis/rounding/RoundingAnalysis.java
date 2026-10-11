@@ -423,17 +423,7 @@ public class RoundingAnalysis {
 						d = summary.result;
 
 					} else {
-						Set<CGNode> targets = CG.getPossibleTargets(n, callInst.getCallSite());
-						if (targets.isEmpty()
-								&& callInst.getDeclaredTarget().getDeclaringClass().getName().toString().startsWith("Lcontract ")
-								&& args.stream().anyMatch(a -> a != Direction.Neither)) {
-							// a contract function with no callee to analyze, e.g. called through an
-							// interface: the result is the same in both runs only if every argument
-							// is; a rounded argument can change it either way. Builtins such as
-							// keccak256 or abi.encode are not contract functions and keep their result.
-							d = Direction.Inconsistent;
-						}
-						for (CGNode cgn : targets) {
+						for (CGNode cgn : CG.getPossibleTargets(n, callInst.getCallSite())) {
 							Pair<CGNode, List<Direction>> key = Pair.make(cgn, args);
 							if (!ongoing.contains(key)) {
 								if (!directionalCalls.containsKey(key)) {

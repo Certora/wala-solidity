@@ -1,1 +1,0 @@
-rule trivial { assert true; }
