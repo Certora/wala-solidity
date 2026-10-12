@@ -14,6 +14,7 @@ package com.certora.wala.analysis.rounding;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -122,7 +123,17 @@ public class RoundingGraphBuilder {
 		});
 		ir.iteratePhis().forEachRemaining(inst -> {
 			SSAPhiInstruction phi = (SSAPhiInstruction) inst;
-			if (isPosition.test(phi.getDef()) || addCeiling(phi)) {
+			if (isPosition.test(phi.getDef())) {
+				// A position merged under a guard that may round can hold different locations in
+				// the two runs, so it takes the branch floor like any other merge.
+				int o = owner[phi.getDef()];
+				RoundingRecognition.BranchFloor bf = recognition.branchFloor(phi);
+				put(bf != null
+						? new RoundingGraph.FloorMerge(o, owners(bf.operandVNs), owners(bf.guardSliceVNs))
+						: new RoundingGraph.Position(o, owners(usesOf(phi))));
+				return;
+			}
+			if (addCeiling(phi)) {
 				return;
 			}
 			int o = owner[phi.getDef()];
@@ -219,6 +230,18 @@ public class RoundingGraphBuilder {
 		equationOrder.add(nd);
 	}
 
+	/** The instruction's value operands (WALA marks a missing operand with a negative number). */
+	private static int[] usesOf(SSAInstruction inst) {
+		int[] r = new int[inst.getNumberOfUses()];
+		int k = 0;
+		for (int i = 0; i < r.length; i++) {
+			if (inst.getUse(i) > 0) {
+				r[k++] = inst.getUse(i);
+			}
+		}
+		return Arrays.copyOf(r, k);
+	}
+
 	private int[] owners(int[] vns) {
 		int[] r = new int[vns.length];
 		for (int i = 0; i < vns.length; i++) {
@@ -301,7 +324,10 @@ public class RoundingGraphBuilder {
 			result = null;
 			o = owner[instruction.getDef()];
 			if (isPosition.test(instruction.getDef()) && !isStructValue(instruction)) {
-				return new RoundingGraph.Opaque(o, "position", true);
+				if (instruction instanceof SSAPhiInstruction) {
+					return null; // added with the other merges, with its branch floor
+				}
+				return new RoundingGraph.Position(o, owners(usesOf(instruction)));
 			}
 			if (!inDeadBlock(instruction)) {
 				instruction.visit(this);

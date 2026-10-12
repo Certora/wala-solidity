@@ -399,6 +399,7 @@ public final class QEval {
 				yield evalMethod(callee, callArgs, c.component());
 			}
 			case RoundingGraph.Bitwise b -> throw new Discard("bitwise");
+			case RoundingGraph.Position p -> dom.fromBig(leaves.value(n, vn));
 			case RoundingGraph.Merge m -> phiMerge(n, q, memo, args, vn);
 			case RoundingGraph.LoopMerge l -> throw new Discard("loop");
 			case RoundingGraph.FloorMerge f -> phiMerge(n, q, memo, args, vn);

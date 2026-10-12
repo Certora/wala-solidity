@@ -1306,9 +1306,8 @@ public class RoundingRecognition {
 			while (phis.hasNext()) {
 				SSAPhiInstruction phi = phis.next();
 				int def = phi.getDef();
-				if (guardedMerges.containsKey(def) || loopInductions.containsKey(def)) {
-					continue; // already handled precisely
-				}
+				// Recorded even for a recognized clamp or loop: Phase 2 uses those rules for amounts,
+				// but a position merged here still needs the floor.
 				Set<Integer> slice = controllingGuardSlice(bb, ir, cfg, cdg, du, st);
 				if (slice.isEmpty()) {
 					continue; // not control-dependent on any conditional: no divergence possible

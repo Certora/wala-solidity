@@ -48,7 +48,7 @@ public class RoundingGraph {
 	 * not handled there is a compile error, not a silently missing equation.
 	 */
 	public sealed interface Node
-			permits Const, Param, Opaque, Add, Mul, Sub, Neg, Assign, Div, Bitwise, Merge, GuardedMerge, LoopMerge, FloorMerge, Load, Call {
+			permits Const, Param, Opaque, Add, Mul, Sub, Neg, Assign, Div, Bitwise, Position, Merge, GuardedMerge, LoopMerge, FloorMerge, Load, Call {
 		/** The value number this node defines. */
 		int vn();
 	}
@@ -104,6 +104,15 @@ public class RoundingGraph {
 	}
 
 	/**
+	 * A value that only names a location (see {@link PositionValues}). Both runs compute it with
+	 * the integer semantics, so it is exact when every operand is exact; an operand that differs
+	 * between the runs (a position merged under a rounded guard, or a rounded amount) makes it
+	 * Inconsistent, since the two runs then name different locations.
+	 */
+	public record Position(int vn, int[] operands) implements Node {
+	}
+
+	/**
 	 * An ordinary merge: both runs take the same path, so the arms meet. Also a struct member read
 	 * (the writes that can reach it) and a struct as one value (everything written into it).
 	 */
@@ -154,6 +163,7 @@ public class RoundingGraph {
 		case Assign a -> new int[] { a.operand() };
 		case Div d -> append(d.numerator(), d.divisor());
 		case Bitwise b -> b.operands();
+		case Position p -> p.operands();
 		case Merge m -> m.arms();
 		case GuardedMerge g -> new int[] { g.bound(), g.thenArm(), g.elseArm() };
 		case LoopMerge l -> new int[] { l.init(), l.latch(), l.ivInit() };

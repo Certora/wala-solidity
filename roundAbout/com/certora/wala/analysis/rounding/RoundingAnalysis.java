@@ -235,20 +235,12 @@ public class RoundingAnalysis {
 					yield d;
 				}
 
-				case RoundingGraph.Bitwise b -> {
-					// Not a numeric function of its operands' magnitudes: exact operands give
-					// an exact result, anything else is Inconsistent.
-					Direction d = Direction.Neither;
-					for (RoundingVariable v : rhs) {
-						if (v.state == null) {
-							yield null;
-						}
-						if (v.state != Direction.Neither) {
-							d = Direction.Inconsistent;
-						}
-					}
-					yield d;
-				}
+				// Not a numeric function of its operands' magnitudes: exact operands give an
+				// exact result, anything else is Inconsistent.
+				case RoundingGraph.Bitwise b -> exactIfAllExact(rhs);
+
+				// Computed with the integer semantics in both runs: equal when its operands are.
+				case RoundingGraph.Position p -> exactIfAllExact(rhs);
 
 				case RoundingGraph.Merge m -> {
 					Direction d = rhs[0].state == null ? Direction.Neither : rhs[0].state;
@@ -349,6 +341,20 @@ public class RoundingAnalysis {
 				case RoundingGraph.Opaque o -> throw new AssertionError(node);
 				case RoundingGraph.Call c -> throw new AssertionError(node);
 				};
+			}
+
+			/** Exact operands give an exact result; anything else is Inconsistent. */
+			private Direction exactIfAllExact(RoundingVariable[] rhs) {
+				Direction d = Direction.Neither;
+				for (RoundingVariable v : rhs) {
+					if (v.state == null) {
+						return null;
+					}
+					if (v.state != Direction.Neither) {
+						d = Direction.Inconsistent;
+					}
+				}
+				return d;
 			}
 
 			private Direction combine(Direction l, Direction r, boolean flipRight) {
