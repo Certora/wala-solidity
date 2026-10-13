@@ -18,13 +18,10 @@ import com.jayway.jsonpath.DocumentContext;
 
 /**
  * A value read back from a memory array right after it was written there is aliased to the
- * written value; returning it must report the written value's direction. Before the fix the
- * returned value was dropped (its owner differed from itself), so a(i) = t / d; return a(i)
- * reported Neither instead of Down, directly or through an internal call.
- *
- * The other functions in ArrayDirections.sol document known limitations (memory array contents
- * read through a different index, writes through a rounded index, storage arrays and mappings
- * are assumed exact); they are not asserted here.
+ * written value; returning it must report the written value's direction, directly or through
+ * an internal call. A read through another index sees every store that may run before it, and a
+ * store through a rounded index makes later reads Inconsistent, for memory arrays, storage
+ * arrays and mappings alike.
  */
 public class TestArrayDirections extends AbstractJsonTest {
 
@@ -41,6 +38,13 @@ public class TestArrayDirections extends AbstractJsonTest {
 		expect(jsonParser, "memAliasedReadPlus", "Down");
 		expect(jsonParser, "divReturn", "Down");
 		expect(jsonParser, "memPlainRead", "Neither");
+		expect(jsonParser, "memLaunderedRead", "Down");
+		expect(jsonParser, "memWriteRoundedIndex", "Inconsistent");
+		expect(jsonParser, "aliasedRead", "Down");
+		expect(jsonParser, "launderedRead", "Down");
+		expect(jsonParser, "writeRoundedIndex", "Inconsistent");
+		expect(jsonParser, "launderedMapping", "Down");
+		expect(jsonParser, "writeRoundedKey", "Inconsistent");
 	}
 
 	private void expect(DocumentContext jsonParser, String fn, String direction) {

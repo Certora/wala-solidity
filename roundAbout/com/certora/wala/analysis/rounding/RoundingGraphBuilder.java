@@ -245,6 +245,68 @@ public class RoundingGraphBuilder {
 		return Arrays.copyOf(r, k);
 	}
 
+	/** Disables array contents: a load through an exact index is then a fresh exact value. */
+	static final boolean DISABLE_ARRAY_CONTENTS = Boolean.getBoolean("disableArrayContents");
+
+	/**
+	 * The owners of every value stored into an array or mapping in this method that may run
+	 * before {@code load}, and of the indices they were stored at. Arrays can alias (a copy, a
+	 * struct field, a nested array, a merge), so all of a method's arrays share one direction:
+	 * the join of everything stored into any of them (array smashing). A store from which the
+	 * load is unreachable cannot have written what it reads. Contents written outside the method
+	 * are not seen.
+	 */
+	private int[][] storesBefore(SSAInstruction load) {
+		if (DISABLE_ARRAY_CONTENTS) {
+			return new int[][] { NO_VNS, NO_VNS };
+		}
+		List<Integer> values = new ArrayList<>();
+		List<Integer> indices = new ArrayList<>();
+		for (SSAInstruction inst : ir.getInstructions()) {
+			if (inst instanceof SSAArrayStoreInstruction store && mayPrecede(store, load)) {
+				values.add(owner[store.getValue()]);
+				indices.add(owner[store.getIndex()]);
+			}
+		}
+		return new int[][] { values.stream().mapToInt(Integer::intValue).toArray(),
+				indices.stream().mapToInt(Integer::intValue).toArray() };
+	}
+
+	/** Whether {@code before} may execute before {@code after} in one run of the method. */
+	private boolean mayPrecede(SSAInstruction before, SSAInstruction after) {
+		SSACFG cfg = ir.getControlFlowGraph();
+		ISSABasicBlock b = cfg.getBlockForInstruction(before.iIndex());
+		ISSABasicBlock a = cfg.getBlockForInstruction(after.iIndex());
+		Set<ISSABasicBlock> reaching = reachingBlocks.computeIfAbsent(a, this::reaching);
+		return b == a ? before.iIndex() < after.iIndex() || reaching.contains(a) : reaching.contains(b);
+	}
+
+	/** The blocks with a nonempty path to {@code target}. */
+	private Set<ISSABasicBlock> reaching(ISSABasicBlock target) {
+		SSACFG cfg = ir.getControlFlowGraph();
+		Set<ISSABasicBlock> seen = HashSetFactory.make();
+		Deque<ISSABasicBlock> work = new ArrayDeque<>();
+		work.push(target);
+		while (!work.isEmpty()) {
+			cfg.getPredNodes(work.pop()).forEachRemaining(p -> {
+				if (seen.add(p)) {
+					work.push(p);
+				}
+			});
+		}
+		return seen;
+	}
+
+	private final Map<ISSABasicBlock, Set<ISSABasicBlock>> reachingBlocks = HashMapFactory.make();
+
+	private static final int[] NO_VNS = new int[0];
+
+	private static int[] concat(int[] a, int[] b) {
+		int[] r = Arrays.copyOf(a, a.length + b.length);
+		System.arraycopy(b, 0, r, a.length, b.length);
+		return r;
+	}
+
 	private int[] owners(int[] vns) {
 		int[] r = new int[vns.length];
 		for (int i = 0; i < vns.length; i++) {
@@ -330,7 +392,13 @@ public class RoundingGraphBuilder {
 				if (instruction instanceof SSAPhiInstruction) {
 					return null; // added with the other merges, with its branch floor
 				}
-				return new RoundingGraph.Position(o, owners(usesOf(instruction)));
+				int[] uses = owners(usesOf(instruction));
+				if (instruction instanceof SSAArrayLoadInstruction load) {
+					// a position read from an array is exact only if everything stored there is
+					int[][] stores = storesBefore(load);
+					uses = concat(uses, concat(stores[0], stores[1]));
+				}
+				return new RoundingGraph.Position(o, uses);
 			}
 			if (!inDeadBlock(instruction)) {
 				instruction.visit(this);
@@ -419,7 +487,8 @@ public class RoundingGraphBuilder {
 			if (mapping[instruction.getDef()] != instruction.getDef()) {
 				return; // aliased to a dominating store: the stored value's node stands for both
 			}
-			result = new RoundingGraph.Load(o, owner[instruction.getIndex()]);
+			int[][] stores = storesBefore(instruction);
+			result = new RoundingGraph.Load(o, owner[instruction.getIndex()], stores[0], stores[1]);
 		}
 
 		@Override
@@ -719,6 +788,18 @@ public class RoundingGraphBuilder {
 			public void visitArrayLoad(SSAArrayLoadInstruction instruction) {
 				int arrayVn = instruction.getArrayRef();
 				int indexVn = instruction.getIndex();
+				// any other store that may run before this load may overwrite the cell (arrays can
+				// alias and indices can be equal), so only the sole such store aliases
+				int stores = 0;
+				for (SSAInstruction i : ir.getInstructions()) {
+					if (i instanceof SSAArrayStoreInstruction && mayPrecede(i, instruction)) {
+						stores++;
+					}
+				}
+				if (stores > 1 && !DISABLE_ARRAY_CONTENTS) {
+					ok = false;
+					return;
+				}
 				du.getUses(arrayVn).forEachRemaining(useInst -> {
 					if (useInst instanceof SSAArrayStoreInstruction) {
 						if (((SSAArrayStoreInstruction)useInst).getArrayRef() == arrayVn &&

@@ -136,10 +136,15 @@ public class RoundingGraph {
 	 * A read through a computed index. An exact index reads the same cell in both runs, and the
 	 * value found there is a fresh unknown as before; a rounded index makes the two runs read
 	 * different cells, so the loaded value bears no relation to its intended counterpart and is
-	 * Inconsistent. Loads aliased to a dominating store keep the stored value's node instead:
-	 * both runs read back what they themselves wrote, whatever the index did.
+	 * Inconsistent. Loads aliased to a dominating store that is the only store able to run before
+	 * them keep the stored value's node instead: both runs read back what they themselves wrote,
+	 * whatever the index did. Otherwise the cell holds an exact value or one stored by this method:
+	 * {@code stored} are the values stored into any array or mapping of the method that may run
+	 * before the load (arrays can alias, so they share one direction), and the load is
+	 * Inconsistent if any of those stores went through a rounded index ({@code storeIndices}),
+	 * since the runs then wrote different cells.
 	 */
-	public record Load(int vn, int index) implements Node {
+	public record Load(int vn, int index, int[] stored, int[] storeIndices) implements Node {
 	}
 
 	/**
@@ -168,7 +173,7 @@ public class RoundingGraph {
 		case GuardedMerge g -> new int[] { g.bound(), g.thenArm(), g.elseArm() };
 		case LoopMerge l -> new int[] { l.init(), l.latch(), l.ivInit() };
 		case FloorMerge f -> f.arms();
-		case Load l -> NONE;
+		case Load l -> l.stored();
 		case Call c -> {
 			int[] uses = new int[c.site().getNumberOfUses()];
 			for (int i = 0; i < uses.length; i++) {
@@ -185,7 +190,7 @@ public class RoundingGraph {
 		case GuardedMerge g -> new int[] { g.guard() };
 		case LoopMerge l -> new int[] { l.bound() };
 		case FloorMerge f -> f.guardSlice();
-		case Load l -> new int[] { l.index() };
+		case Load l -> append(l.storeIndices(), l.index());
 		default -> NONE;
 		};
 	}
@@ -200,7 +205,14 @@ public class RoundingGraph {
 			System.arraycopy(f.guardSlice(), 0, r, f.arms().length, f.guardSlice().length);
 			yield r;
 		}
-		case Load l -> new int[] { l.index() };
+		case Load l -> {
+			// [index, storeIndices..., stored...]
+			int[] r = new int[1 + l.storeIndices().length + l.stored().length];
+			r[0] = l.index();
+			System.arraycopy(l.storeIndices(), 0, r, 1, l.storeIndices().length);
+			System.arraycopy(l.stored(), 0, r, 1 + l.storeIndices().length, l.stored().length);
+			yield r;
+		}
 		default -> valueOperands(n);
 		};
 	}

@@ -328,12 +328,30 @@ public class RoundingAnalysis {
 				}
 
 				case RoundingGraph.Load l -> {
-					// rhs = [index]. An exact index reads the same cell in both runs and the
-					// value found there is a fresh unknown, as before; a rounded index makes
-					// the runs read different cells, so the loaded value is Inconsistent.
-					Direction idx = rhs[0].state;
-					yield idx == null ? null
-							: idx == Direction.Neither ? Direction.Neither : Direction.Inconsistent;
+					// rhs = [index, storeIndices..., stored...]. A rounded index makes the runs
+					// read different cells, and a store through a rounded index made them write
+					// different cells, so either makes the loaded value Inconsistent. Otherwise
+					// both runs read the same cell, which holds an exact value or one of the
+					// stored ones: the join of the stored directions.
+					int k = l.storeIndices().length;
+					for (int i = 0; i <= k; i++) {
+						Direction d = rhs[i].state;
+						if (d == null) {
+							yield null;
+						}
+						if (d != Direction.Neither) {
+							yield Direction.Inconsistent;
+						}
+					}
+					Direction r = Direction.Neither;
+					for (int i = k + 1; i < rhs.length; i++) {
+						Direction d = rhs[i].state;
+						if (d == null) {
+							yield null;
+						}
+						r = r.meet(d);
+					}
+					yield r;
 				}
 
 				case RoundingGraph.Const c -> throw new AssertionError(node);
