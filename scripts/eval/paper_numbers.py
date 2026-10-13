@@ -149,7 +149,8 @@ def main():
                   f'evAbl{key}Verdicts': n(ab['verdicts']), f'evAbl{key}Changed': n(ab['changed']),
                   f'evAbl{key}ToIndet': n(sum(v for (a, b), v in tr.items() if b == 'Inconsistent')),
                   f'evAbl{key}UpToDown': n(tr[('Up', 'Down')]),
-                  f'evAbl{key}IndetToDown': n(tr[('Inconsistent', 'Down')])})
+                  f'evAbl{key}IndetToDown': n(tr[('Inconsistent', 'Down')]),
+                  f'evAbl{key}DownToUp': WORDS.get(tr[('Down', 'Up')], str(tr[('Down', 'Up')]))})
         if key == 'Intent':
             intent_ab = ab
 
