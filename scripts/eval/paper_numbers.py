@@ -14,7 +14,8 @@ hand and every number traces to one function below. Run from eval-artifacts/:
 where <tag> names the canonical extracts (private-<tag>-returns.txt, ...) and the
 result JSON directory private-<tag>/. All other inputs are fixed paths in this
 directory: loc/<tag>-loc.tsv (scripts/eval/loc.py), runs/<tag>-mvn-test*.log (one per repeated run; times are
-per-configuration means), ablation/, case-studies/.
+per-configuration means), ablation/<tag>-disable{Positions,Intent}-*.txt (extracts of the
+same jar run with one flag on), case-studies/ (and case-studies/ablation-<tag>/).
 
 The LLM comparison (the rename study) is not generated here; its table is written by
 hand from llm_agent/score_rename.py's output.
@@ -25,7 +26,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import ablation_positions  # noqa: E402
+import ablation  # noqa: E402
 import case_studies  # noqa: E402
 import corpus_table  # noqa: E402
 import div_subset  # noqa: E402
@@ -134,11 +135,20 @@ def main():
              evNameAgree=n(na['agree']), evNamePct=f"{100 * na['agree'] / na['results']:.0f}\\%",
              evNameMisses=WORDS.get(na['results'] - na['agree'], str(na['results'] - na['agree'])))
 
-    # correctness: positions ablation
-    ab = ablation_positions.compute('ablation/eigenlayer-positions-on.json',
-                                    'ablation/eigenlayer-positions-off.json')
-    m.update(evAblRemoved=n(ab['removed_by_positions']),
-             evAblFunctions=WORDS.get(ab['functions'], str(ab['functions'])))
+    # ablations: the same jar with one feature off (-DdisablePositions, -DdisableIntent)
+    for key, flag in (('Pos', 'disablePositions'), ('Intent', 'disableIntent')):
+        ab = ablation.compute(f'private-{tag}', f'ablation/{tag}-{flag}')
+        h = ab['abl']
+        tr = ab['transitions']
+        m.update({f'evAbl{key}Results': n(h['results']),
+                  f'evAbl{key}PctExact': pct(h['pct']['exact']), f'evAbl{key}PctDown': pct(h['pct']['down']),
+                  f'evAbl{key}PctUp': pct(h['pct']['up']), f'evAbl{key}PctIndet': pct(h['pct']['indet']),
+                  f'evAbl{key}Verdicts': n(ab['verdicts']), f'evAbl{key}Changed': n(ab['changed']),
+                  f'evAbl{key}ToIndet': n(sum(v for (a, b), v in tr.items() if b == 'Inconsistent')),
+                  f'evAbl{key}UpToDown': n(tr[('Up', 'Down')]),
+                  f'evAbl{key}IndetToDown': n(tr[('Inconsistent', 'Down')])})
+        if key == 'Intent':
+            intent_ab = ab
 
     # ------------------------------------------------------------------
     # Qualitative claims the prose makes. Each one is checked here, so a
@@ -158,6 +168,11 @@ def main():
           "the name disagreements are all Indet on Aave v4 hub helpers")
     for ok, sentence in case_studies.compute(tag):
         claim(ok, sentence)
+    claim(intent_ab['transitions'][('Up', 'Down')] > 0
+          and intent_ab['abl']['up'] < intent_ab['full']['up'],
+          "without intent recognition, results that round up are read as rounding down")
+    claim(case_studies.intent_off(tag) == {'raft': {'Down'}, 'compound_fixed': {'Inconsistent'}},
+          "without intent recognition, Raft's divUp reads as Down and Compound's fix as Indet")
     if failed:
         raise SystemExit("PROSE CLAIMS NO LONGER HOLD - fix the text, then regenerate:\n  "
                          + "\n  ".join(failed))

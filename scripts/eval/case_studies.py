@@ -46,6 +46,18 @@ def _sites(roots, fn, line, source_prefix):
     return {r for md in roots.get(fn, []) for r in _site(md, line, source_prefix)}
 
 
+def intent_off(tag):
+    """The case-study sites that intent recognition decides, read from the run with
+    -DdisableIntent: Raft's three divUp sites and the fixed Compound burn line."""
+    d = f'case-studies/ablation-{tag}'
+    raft = _roots([f'{d}/intent-off-cs-RaftActual.json'])
+    fixed = _roots([f'{d}/intent-off-cs-CompoundV2Fixed.json'])
+    return dict(raft=_sites(raft, 'mint', 2474, 'amount.divUp(storedIndex)')
+                | _sites(raft, 'burn', 2478, 'amount.divUp(storedIndex)')
+                | _sites(raft, 'setIndex', 2483, 'backingAmount.divUp(supply)'),
+                compound_fixed=_sites(fixed, 'redeemFresh', 503, '(redeemAmountIn * expScale + m - 1) / m'))
+
+
 def compute(tag):
     """Returns a list of (ok, sentence) pairs."""
     compound = _roots(['case-studies/cs-CompoundV2Actual.json'])
