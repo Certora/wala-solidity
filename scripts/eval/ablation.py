@@ -9,11 +9,11 @@ Two views:
   headline     each run's corpus-table distribution (corpus_table.compute). An ablation
                changes the arguments callers pass, so the set of (function, context)
                results itself changes; the headlines are compared as distributions.
-  entry points public functions analyzed in their root context, which no ablation
-               changes, so each one is compared verdict to verdict. A tuple counts one
-               verdict per component. Entry points whose (test, method, context) key
-               occurs more than once are compared as multisets and only counted, not
-               given a transition. A function analyzed in several copies that share one
+  per function  each function analyzed on its own with exact arguments (the root of
+               each report graph), a context no ablation changes, compared verdict to
+               verdict. Rows are deduplicated as in the corpus table (an identical
+               test | method | context | return row counts once) and a tuple counts one
+               verdict per component. A function analyzed in several copies that share one
                direction context but differ in a constant the caller passes (a rounding
                mode) can return different verdicts per copy; which copy is the graph's root
                is incidental, so such keys (more than one verdict for the key among all
@@ -36,11 +36,12 @@ def _components(ret):
 
 
 def _roots(path):
-    rows = collections.defaultdict(list)
-    for line in open(path):
+    """{(test, method, context): set of returns}, deduplicated rows, corpus only."""
+    rows = collections.defaultdict(set)
+    for line in set(open(path).read().splitlines()):
         t, m, ctx, ret = [x.strip() for x in line.split(' | ', 3)]
         if t.rsplit('_', 1)[0] in PROT:
-            rows[(t, m, ctx)].append(ret.removeprefix('return='))
+            rows[(t, m, ctx)].add(ret.removeprefix('return='))
     return rows
 
 
@@ -58,7 +59,7 @@ def compute(full, abl):
     ha = corpus_table.compute(f'{abl}-returns.txt')
     rf, ra = _roots(f'{full}-roots.txt'), _roots(f'{abl}-roots.txt')
     if set(rf) != set(ra):
-        raise SystemExit(f'entry points differ: {len(set(rf) ^ set(ra))} keys')
+        raise SystemExit(f'root keys differ: {len(set(rf) ^ set(ra))} keys')
     spec = _specialized(f'{full}-returns.txt') | _specialized(f'{abl}-returns.txt')
     trans = collections.Counter()
     verdicts = changed = ambiguous_changed = specialized = 0
@@ -69,7 +70,7 @@ def compute(full, abl):
             specialized += 1
             continue
         if len(a) == 1 and len(b) == 1:
-            ca, cb = dict(_components(a[0])), dict(_components(b[0]))
+            ca, cb = dict(_components(next(iter(a)))), dict(_components(next(iter(b))))
             if set(ca) != set(cb):
                 raise SystemExit(f'tuple shape differs at {k}')
             for i in ca:
@@ -79,11 +80,8 @@ def compute(full, abl):
                     trans[(ca[i], cb[i])] += 1
                     functions.add(k)
         else:
-            n = sum(len(_components(r)) for r in a)
-            verdicts += n
-            if collections.Counter(a) != collections.Counter(b):
-                ambiguous_changed += 1
-                functions.add(k)
+            ambiguous_changed += 1
+            functions.add(k)
     return dict(full=hf, abl=ha, verdicts=verdicts, changed=changed, transitions=trans,
                 ambiguous_changed=ambiguous_changed, functions=len(functions),
                 specialized=specialized)
@@ -95,8 +93,8 @@ def main():
         h = r[name]; p = h['pct']
         print(f"{name:5s} {h['results']} results: Exact {p['exact']:.2f}%  Down {p['down']:.2f}%  "
               f"Up {p['up']:.2f}%  Indet {p['indet']:.2f}%")
-    print(f"entry points: {r['changed']} of {r['verdicts']} verdicts change "
-          f"({r['functions']} entry points; {r['ambiguous_changed']} repeated keys differ as multisets; "
+    print(f"per function: {r['changed']} of {r['verdicts']} verdicts change "
+          f"({r['functions']} functions; {r['ambiguous_changed']} keys with several distinct verdicts; "
           f"{r['specialized']} constant-specialized keys left out)")
     for (a, b), n in r['transitions'].most_common():
         print(f"  {a:>12} -> {b:<12} {n}")
