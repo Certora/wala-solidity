@@ -190,13 +190,16 @@ public class RoundingGraphBuilder {
 			}
 		}
 
-		List<Integer> returns = new ArrayList<>();
+		// A returned value is reported through its owner: a load aliased to a dominating store is
+		// owned by the stored value, and returning it must report that value's direction.
+		Set<Integer> returnOwners = new java.util.LinkedHashSet<>();
 		for (int v = 1; v <= max; v++) {
-			if (owner[v] == v && hasReturn(v)) {
-				assert !absorbed.contains(v) : "returned value v" + v + " was absorbed";
-				returns.add(v);
+			if (hasReturn(v)) {
+				assert !absorbed.contains(owner[v]) : "returned value v" + v + " was absorbed";
+				returnOwners.add(owner[v]);
 			}
 		}
+		List<Integer> returns = new ArrayList<>(returnOwners);
 		int[] returnVns = returns.stream().mapToInt(Integer::intValue).toArray();
 
 		return new RoundingGraph(byVn, equationOrder, owner, returnVns);
