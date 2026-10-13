@@ -100,11 +100,19 @@ public class RoundingRecognition {
 		this(ir, Calls.NONE);
 	}
 
+	/**
+	 * Ablation: no round-up idiom is recognized (neither the bias division nor any ceiling), so
+	 * every such division is read literally, as rounding down.
+	 */
+	static final boolean DISABLE_INTENT = Boolean.getBoolean("disableIntent");
+
 	public RoundingRecognition(IR ir, Calls calls) {
 		this.dug = new DefUseGraph(ir);
 		this.calls = calls;
 		classifyDivisions(ir);
-		recognizeCeilings(ir);
+		if (!DISABLE_INTENT) {
+			recognizeCeilings(ir);
+		}
 		recognizeGuardedMerges(ir);
 		recognizeLoopInductions(ir);
 		recognizeBranchFloors(ir);
@@ -127,7 +135,7 @@ public class RoundingRecognition {
 						divDir.put(bin.iIndex(), Direction.Neither); // x / 1 == x: exact for every dividend
 						return;
 					}
-					int a = biasNumerator(bin);
+					int a = DISABLE_INTENT ? -1 : biasNumerator(bin);
 					if (a > 0) {
 						divDir.put(bin.iIndex(), Direction.Up);
 						ceilings.put(bin.getDef(), new Ceiling(factors(a), bin.getUse(1), Collections.emptyList()));
