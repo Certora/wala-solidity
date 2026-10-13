@@ -100,7 +100,8 @@ def main():
     m.update(evConfigurations=n(len(PROT)), evProtocols=n(len(set(PROTOCOL.values()))), evSynthetic=n(len(synth)), evResults=n(ct['results']),
              evPctDefinite=pct(ct['pct']['definite']), evPctExact=pct(ct['pct']['exact']),
              evPctDown=pct(ct['pct']['down']), evPctUp=pct(ct['pct']['up']),
-             evPctIndet=pct(ct['pct']['indet']), evNonExact=n(ct['non_exact']))
+             evPctIndet=pct(ct['pct']['indet']), evNonExact=n(ct['non_exact']),
+             evExact=n(ct['exact']), evDown=n(ct['down']), evUp=n(ct['up']))
 
     # lines of code (each file counted once across the corpus)
     loc = _loc(f'loc/{tag}-loc.tsv')
@@ -143,6 +144,8 @@ def main():
         m.update({f'evAbl{key}Results': n(h['results']),
                   f'evAbl{key}PctExact': pct(h['pct']['exact']), f'evAbl{key}PctDown': pct(h['pct']['down']),
                   f'evAbl{key}PctUp': pct(h['pct']['up']), f'evAbl{key}PctIndet': pct(h['pct']['indet']),
+                  f'evAbl{key}Exact': n(h['exact']), f'evAbl{key}Down': n(h['down']),
+                  f'evAbl{key}Up': n(h['up']), f'evAbl{key}Indet': n(h['indet']),
                   f'evAbl{key}Verdicts': n(ab['verdicts']), f'evAbl{key}Changed': n(ab['changed']),
                   f'evAbl{key}ToIndet': n(sum(v for (a, b), v in tr.items() if b == 'Inconsistent')),
                   f'evAbl{key}UpToDown': n(tr[('Up', 'Down')]),
