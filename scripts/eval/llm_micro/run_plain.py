@@ -62,7 +62,9 @@ def prompt_for(item, workspaces):
 
 
 def parse_verdict(text):
-    last = [ln for ln in text.strip().splitlines() if ln.strip()]
+    # the last non-blank line, ignoring a closing code fence around it (Opus wrapped the JSON
+    # in ```json ... ``` on one of the 14 pilot answers, CeilingIdioms.ceilDiv)
+    last = [ln for ln in text.strip().splitlines() if ln.strip() and not ln.strip().startswith('```')]
     try:
         v = json.loads(last[-1]).get('verdict') if last else None
     except (ValueError, AttributeError):
