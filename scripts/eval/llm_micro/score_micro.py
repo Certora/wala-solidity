@@ -21,6 +21,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'llm_agent'))
 from run_agent import parse_verdict  # noqa: E402
 
+# Left out of the scores (user decision, 2026-10-13): the two questions whose JUnit expectation
+# pins a known RoundAbout error, so the reference itself is wrong there.
+EXCLUDED = {
+    'CeilingIdioms.CeilingIdioms.unguardedPredecrement',  # Down; a = 0 reverts, so it is ceil(a/b)
+    'YulBuiltins.YulBuiltins.expQuotient',  # Exact; floor(a/b)^2 <= (a/b)^2 (the exp gap)
+}
+
 OUTCOMES = ['agree', 'refused', 'stronger', 'different', 'unparsed', 'missing']
 
 
@@ -39,6 +46,8 @@ def outcome(ref, v):
 def main():
     items_path, ra_path, transcripts, out = sys.argv[1:5]
     items = json.load(open(items_path))
+    assert EXCLUDED <= {i['id'] for i in items}
+    items = [i for i in items if i['id'] not in EXCLUDED]
     ra = json.load(open(ra_path))
     answers = {'RoundAbout': {i['id']: ra['verdicts'][i['id']]['verdict'] for i in items}}
     cost = {}
@@ -67,10 +76,10 @@ def main():
     known = [dict(id=i['id'], label=i['label'], **{t: answers[t][i['id']] for t in answers})
              for i in items if ref[i['id']] != i['label']]
     rows = [dict(id=i['id'], **{t: answers[t][i['id']] for t in answers}) for i in items]
-    json.dump(dict(questions=len(items), reference='RoundAbout', jar_sha256=ra['jar_sha256'],
+    json.dump(dict(questions=len(items), excluded=sorted(EXCLUDED), reference='RoundAbout', jar_sha256=ra['jar_sha256'],
                    table=table, known_tool_errors=known, cost_usd=cost, per_fixture=per_fixture,
                    rows=rows), open(out, 'w'), indent=1)
-    print(f'{len(items)} questions; reference RoundAbout, jar {ra["jar_sha256"][:12]}')
+    print(f'{len(items)} questions ({len(EXCLUDED)} excluded); reference RoundAbout, jar {ra["jar_sha256"][:12]}')
     for m in models:
         print(f'{m:18s} ' + '  '.join(f'{o} {table[m][o]}' for o in OUTCOMES) + f'  cost ${cost[m]:.2f}')
     print('known tool errors (RoundAbout verdict != hand label):')
