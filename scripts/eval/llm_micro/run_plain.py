@@ -13,7 +13,8 @@ Run from eval-artifacts/:
   python3 ../scripts/eval/llm_micro/run_plain.py llm-micro/items.json llm-micro/workspaces \
       llm-micro/plain --models claude-opus-5-5 claude-sonnet-5 [--fixtures F ...] [--dry-run]
   add --assumptions (output dir llm-micro/plain-assumptions) for the variant with the agent
-  prompt's assumptions
+  prompt's assumptions; add --assumptions --definitions (llm-micro/plain-defs) to also define
+  the four classes
 """
 import argparse
 import json
@@ -53,7 +54,20 @@ def code_block(fixture, workspaces):
     return '```solidity\n' + '\n\n'.join(parts) + '\n```'
 
 
-def prompt_for(item, workspaces, assumptions=False):
+# --definitions: the agent prompt's four classes (run_agent.PROMPT), compared against the
+# user's "Real semantics" value instead of the agent prompt's ACTUAL/INTENDED pair
+DEFINITIONS = """Classify the result over all inputs that satisfy these assumptions, comparing it
+with the value it would have under Real semantics:
+- Exact: the result always equals the Real-semantics value
+- Down: the result is always less than or equal to the Real-semantics value
+- Up: the result is always greater than or equal to the Real-semantics value
+- Indeterminate: the result is above the Real-semantics value for some inputs
+  and below it for others
+
+"""
+
+
+def prompt_for(item, workspaces, assumptions=False, definitions=False):
     a = item['anon']
     fn = a['signature'].split('(')[0]
     subject = f'the result of {fn}'
@@ -71,6 +85,8 @@ def prompt_for(item, workspaces, assumptions=False):
         p += f'In the deployed system, {where}; `engines` has no other entries.\n\n'
     if assumptions:
         p += ASSUMPTIONS
+    if definitions:
+        p += DEFINITIONS
     p += ('End your answer with one JSON object on its last line:\n'
           '{"verdict": "Exact" | "Down" | "Up" | "Indeterminate"}')
     return p
@@ -95,6 +111,7 @@ def main():
     ap.add_argument('--models', nargs='+', required=True)
     ap.add_argument('--fixtures', nargs='*')
     ap.add_argument('--assumptions', action='store_true', help='add the agent prompt\'s assumptions')
+    ap.add_argument('--definitions', action='store_true', help='add the four classes\' definitions')
     ap.add_argument('--dry-run', action='store_true')
     a = ap.parse_args()
     items = [i for i in json.load(open(a.items)) if i['id'] not in EXCLUDED]
@@ -102,11 +119,11 @@ def main():
         items = [i for i in items if i['fixture'] in set(a.fixtures)]
     if a.dry_run:
         for i in items:
-            print(f"===== {i['id']}\n{prompt_for(i, a.workspaces, a.assumptions)}\n")
+            print(f"===== {i['id']}\n{prompt_for(i, a.workspaces, a.assumptions, a.definitions)}\n")
         return
     client = anthropic.Anthropic()
     for item in items:
-        prompt = prompt_for(item, a.workspaces, a.assumptions)
+        prompt = prompt_for(item, a.workspaces, a.assumptions, a.definitions)
         for model in a.models:
             d = os.path.join(a.out, model)
             os.makedirs(d, exist_ok=True)
