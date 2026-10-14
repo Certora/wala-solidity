@@ -33,18 +33,18 @@ ORDINAL = ['first', 'second', 'third', 'fourth']
 VERDICTS = {'Exact', 'Down', 'Up', 'Indeterminate'}
 
 # --assumptions: the agent prompt's assumptions (run_agent.PROMPT), word for word except that
-# "code outside /work" becomes "code not shown here"
+# "code outside /work" becomes "code not shown here", plus a last line the user added on
+# 2026-10-14 (stated, not derived from reverting: Yul's div(x, 0) returns 0). The runs in
+# plain-assumptions/, plain-defs/ and plain-defs-run-b/ predate that line (built at 80f517c).
 ASSUMPTIONS = """Assumptions (apply these; do not answer a different question):
 - All parameters are exact.
 - Values read from storage, and values returned by calls to code not shown
   here, are exact.
 - Arithmetic never overflows, and all values are non-negative.
 - Only inputs on which the function returns normally count.
+- Every divisor is non-zero (division by zero reverts in Solidity).
 
 """
-# --nonzero-divisors adds this line to the assumptions (user, 2026-10-14); Yul's div(x, 0) returns
-# 0 rather than reverting, so the line states the assumption instead of deriving it
-NONZERO = "- Every divisor is non-zero (division by zero reverts in Solidity).\n"
 
 
 def code_block(fixture, workspaces):
@@ -70,7 +70,7 @@ with the value it would have under Real semantics:
 """
 
 
-def prompt_for(item, workspaces, assumptions=False, definitions=False, nonzero=False):
+def prompt_for(item, workspaces, assumptions=False, definitions=False):
     a = item['anon']
     fn = a['signature'].split('(')[0]
     subject = f'the result of {fn}'
@@ -87,7 +87,7 @@ def prompt_for(item, workspaces, assumptions=False, definitions=False, nonzero=F
         where = ', '.join(f'`{k}` is a `{v}` contract' for k, v in a['deployment'].items())
         p += f'In the deployed system, {where}; `engines` has no other entries.\n\n'
     if assumptions:
-        p += ASSUMPTIONS.replace('count.\n\n', 'count.\n' + NONZERO + '\n') if nonzero else ASSUMPTIONS
+        p += ASSUMPTIONS
     if definitions:
         p += DEFINITIONS
     p += ('End your answer with one JSON object on its last line:\n'
@@ -115,7 +115,6 @@ def main():
     ap.add_argument('--fixtures', nargs='*')
     ap.add_argument('--assumptions', action='store_true', help='add the agent prompt\'s assumptions')
     ap.add_argument('--definitions', action='store_true', help='add the four classes\' definitions')
-    ap.add_argument('--nonzero-divisors', action='store_true', help='also assume every divisor is non-zero')
     ap.add_argument('--dry-run', action='store_true')
     a = ap.parse_args()
     items = [i for i in json.load(open(a.items)) if i['id'] not in EXCLUDED]
@@ -123,11 +122,11 @@ def main():
         items = [i for i in items if i['fixture'] in set(a.fixtures)]
     if a.dry_run:
         for i in items:
-            print(f"===== {i['id']}\n{prompt_for(i, a.workspaces, a.assumptions, a.definitions, a.nonzero_divisors)}\n")
+            print(f"===== {i['id']}\n{prompt_for(i, a.workspaces, a.assumptions, a.definitions)}\n")
         return
     client = anthropic.Anthropic()
     for item in items:
-        prompt = prompt_for(item, a.workspaces, a.assumptions, a.definitions, a.nonzero_divisors)
+        prompt = prompt_for(item, a.workspaces, a.assumptions, a.definitions)
         for model in a.models:
             d = os.path.join(a.out, model)
             os.makedirs(d, exist_ok=True)
