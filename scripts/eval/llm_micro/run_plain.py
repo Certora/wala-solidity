@@ -12,6 +12,8 @@ comes from the model named. Responses are saved write-once, never regenerated.
 Run from eval-artifacts/:
   python3 ../scripts/eval/llm_micro/run_plain.py llm-micro/items.json llm-micro/workspaces \
       llm-micro/plain --models claude-opus-5-5 claude-sonnet-5 [--fixtures F ...] [--dry-run]
+  add --assumptions (output dir llm-micro/plain-assumptions) for the variant with the agent
+  prompt's assumptions
 """
 import argparse
 import json
@@ -29,6 +31,17 @@ MAX_TOKENS = 16000
 ORDINAL = ['first', 'second', 'third', 'fourth']
 VERDICTS = {'Exact', 'Down', 'Up', 'Indeterminate'}
 
+# --assumptions: the agent prompt's assumptions (run_agent.PROMPT), word for word except that
+# "code outside /work" becomes "code not shown here"
+ASSUMPTIONS = """Assumptions (apply these; do not answer a different question):
+- All parameters are exact.
+- Values read from storage, and values returned by calls to code not shown
+  here, are exact.
+- Arithmetic never overflows, and all values are non-negative.
+- Only inputs on which the function returns normally count.
+
+"""
+
 
 def code_block(fixture, workspaces):
     d = os.path.join(workspaces, fixture, 'anon')
@@ -40,7 +53,7 @@ def code_block(fixture, workspaces):
     return '```solidity\n' + '\n\n'.join(parts) + '\n```'
 
 
-def prompt_for(item, workspaces):
+def prompt_for(item, workspaces, assumptions=False):
     a = item['anon']
     fn = a['signature'].split('(')[0]
     subject = f'the result of {fn}'
@@ -56,6 +69,8 @@ def prompt_for(item, workspaces):
     if a['deployment']:
         where = ', '.join(f'`{k}` is a `{v}` contract' for k, v in a['deployment'].items())
         p += f'In the deployed system, {where}; `engines` has no other entries.\n\n'
+    if assumptions:
+        p += ASSUMPTIONS
     p += ('End your answer with one JSON object on its last line:\n'
           '{"verdict": "Exact" | "Down" | "Up" | "Indeterminate"}')
     return p
@@ -79,6 +94,7 @@ def main():
     ap.add_argument('out')
     ap.add_argument('--models', nargs='+', required=True)
     ap.add_argument('--fixtures', nargs='*')
+    ap.add_argument('--assumptions', action='store_true', help='add the agent prompt\'s assumptions')
     ap.add_argument('--dry-run', action='store_true')
     a = ap.parse_args()
     items = [i for i in json.load(open(a.items)) if i['id'] not in EXCLUDED]
@@ -86,11 +102,11 @@ def main():
         items = [i for i in items if i['fixture'] in set(a.fixtures)]
     if a.dry_run:
         for i in items:
-            print(f"===== {i['id']}\n{prompt_for(i, a.workspaces)}\n")
+            print(f"===== {i['id']}\n{prompt_for(i, a.workspaces, a.assumptions)}\n")
         return
     client = anthropic.Anthropic()
     for item in items:
-        prompt = prompt_for(item, a.workspaces)
+        prompt = prompt_for(item, a.workspaces, a.assumptions)
         for model in a.models:
             d = os.path.join(a.out, model)
             os.makedirs(d, exist_ok=True)
