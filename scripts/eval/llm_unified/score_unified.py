@@ -22,11 +22,14 @@ from run_plain import parse_verdict  # noqa: E402
 from score_micro import OUTCOMES, outcome  # noqa: E402
 from score_plain import PRICE  # noqa: E402
 
-SETS = ('name', 'tricky', 'micro')
+SETS = ('name', 'micro')
 # Left out of the scores (user decision, 2026-10-14): the prompt shows the question file's import
 # closure, which omits the inheriting contract that implements the virtual _getNextDripAmount, so
 # under the prompt's assumptions the question has a different answer than RoundAbout's.
 DROPPED = {'witness-TestCozyEuler-SafetyModuleInspector-convertToReserveAssetAmount-L38'}
+# The whole tricky set is left out too (user decision, 2026-10-14): the scores cover the name set
+# and the microbenchmarks only.
+DROPPED_SETS = {'tricky'}
 CONDITIONS = ('named', 'renamed')
 
 
@@ -43,7 +46,7 @@ def main():
     items_path, answers, out = sys.argv[1:4]
     asked = json.load(open(items_path))
     assert DROPPED <= {i['id'] for i in asked}
-    items = [i for i in asked if i['id'] not in DROPPED]
+    items = [i for i in asked if i['id'] not in DROPPED and i['set'] not in DROPPED_SETS]
     models = sorted(os.listdir(answers))
     table, stable, cost, rows = {}, {}, {}, []
     ans = {}
@@ -64,7 +67,7 @@ def main():
         rows.append(dict(id=i['id'], set=i['set'], RoundAbout=i['reference'],
                          **{f'{m} {c}': ans[m, c, i['id']] for m in models for c in CONDITIONS}))
     n = collections.Counter(i['set'] for i in items)
-    json.dump(dict(questions=dict(n), dropped=sorted(DROPPED), table=table, same_named_renamed=stable, cost_usd_list_price=cost,
+    json.dump(dict(questions=dict(n), dropped=sorted(DROPPED), dropped_sets=sorted(DROPPED_SETS), table=table, same_named_renamed=stable, cost_usd_list_price=cost,
                    rows=rows), open(out, 'w'), indent=1)
     print(f'questions {dict(n)}')
     for m in models:
