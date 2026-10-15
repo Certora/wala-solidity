@@ -41,15 +41,15 @@ def answer(path):
 
 def main():
     items_path, answers, out = sys.argv[1:4]
-    items = json.load(open(items_path))
-    assert DROPPED <= {i['id'] for i in items}
-    items = [i for i in items if i['id'] not in DROPPED]
+    asked = json.load(open(items_path))
+    assert DROPPED <= {i['id'] for i in asked}
+    items = [i for i in asked if i['id'] not in DROPPED]
     models = sorted(os.listdir(answers))
     table, stable, cost, rows = {}, {}, {}, []
     ans = {}
     for m in models:
         tin = tout = 0
-        for i in items:
+        for i in asked:  # cost counts every call made, dropped questions included
             for c in CONDITIONS:
                 v, a, b = answer(os.path.join(answers, m, c, i['id'] + '.json'))
                 ans[m, c, i['id']] = v
