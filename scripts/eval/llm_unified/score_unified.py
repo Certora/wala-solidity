@@ -49,15 +49,21 @@ def main():
     items = [i for i in asked if i['id'] not in DROPPED and i['set'] not in DROPPED_SETS]
     models = sorted(os.listdir(answers))
     table, stable, cost, rows = {}, {}, {}, []
+    cost_scored, calls_scored = {}, {}
+    scored = {i['id'] for i in items}
     ans = {}
     for m in models:
-        tin = tout = 0
-        for i in asked:  # cost counts every call made, dropped questions included
+        tin = tout = sin = sout = n_scored = 0
+        for i in asked:  # cost counts every call made; cost_scored only the scored questions
             for c in CONDITIONS:
                 v, a, b = answer(os.path.join(answers, m, c, i['id'] + '.json'))
                 ans[m, c, i['id']] = v
                 tin, tout = tin + a, tout + b
+                if i['id'] in scored and v != 'MISSING':
+                    sin, sout, n_scored = sin + a, sout + b, n_scored + 1
         cost[m] = (tin * PRICE[m][0] + tout * PRICE[m][1]) / 1e6
+        cost_scored[m] = (sin * PRICE[m][0] + sout * PRICE[m][1]) / 1e6
+        calls_scored[m] = n_scored
         table[m] = {s: {c: dict(collections.Counter(outcome(i['reference'], ans[m, c, i['id']])
                                                     for i in items if i['set'] == s))
                         for c in CONDITIONS} for s in SETS}
@@ -68,6 +74,7 @@ def main():
                          **{f'{m} {c}': ans[m, c, i['id']] for m in models for c in CONDITIONS}))
     n = collections.Counter(i['set'] for i in items)
     json.dump(dict(questions=dict(n), dropped=sorted(DROPPED), dropped_sets=sorted(DROPPED_SETS), table=table, same_named_renamed=stable, cost_usd_list_price=cost,
+                   cost_usd_list_price_scored=cost_scored, calls_scored=calls_scored,
                    rows=rows), open(out, 'w'), indent=1)
     print(f'questions {dict(n)}')
     for m in models:
@@ -77,7 +84,7 @@ def main():
                 print(f'{m:16s} {s:6s} {c:7s} agree {t.get("agree", 0):3d}/{n[s]:3d}  ' +
                       '  '.join(f'{o} {t[o]}' for o in OUTCOMES if o != 'agree' and t.get(o)))
             print(f'{"":16s} {s:6s} same answer named vs renamed: {stable[m][s]}/{n[s]}')
-        print(f'{m}: cost ${cost[m]:.2f}')
+        print(f'{m}: cost ${cost[m]:.2f} (all calls); ${cost_scored[m]:.2f} for the {calls_scored[m]} calls on scored questions')
 
 
 if __name__ == '__main__':
