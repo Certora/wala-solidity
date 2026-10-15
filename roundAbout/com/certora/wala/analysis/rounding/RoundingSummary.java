@@ -64,6 +64,14 @@ public interface RoundingSummary {
 	Value get(Key key);
 	
 	boolean has(Key key);
+
+	/**
+	 * True if the function is modelled as a division ({@link Value#isDivOp}): it computes
+	 * {@code floor(a_1 * ... * a_k / d)} of its arguments {@code a_1, ..., a_k, d}.
+	 */
+	default boolean isDivOp(String functionName) {
+		return false;
+	}
 	
 	void add(Key k, Value v);
 
@@ -105,6 +113,12 @@ public interface RoundingSummary {
 		@Override
 		public boolean has(Key key) {
 			return summaries.containsKey(key);
+		}
+
+		@Override
+		public boolean isDivOp(String functionName) {
+			return summaries.entrySet().stream()
+				.anyMatch(e -> e.getKey().functionName.equals(functionName) && e.getValue().isDivOp);
 		}
 
 		@Override

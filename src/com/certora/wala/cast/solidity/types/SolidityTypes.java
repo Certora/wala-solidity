@@ -38,9 +38,9 @@ public class SolidityTypes {
 
 	public static TypeReference uint8 = TypeReference.findOrCreate(solidity, "Puint8");
 
-	public static TypeReference uint24 = TypeReference.findOrCreate(solidity, "Puint16");
+	public static TypeReference uint24 = TypeReference.findOrCreate(solidity, "Puint24");
 
-	public static TypeReference uint16 = TypeReference.findOrCreate(solidity, "Puint24");
+	public static TypeReference uint16 = TypeReference.findOrCreate(solidity, "Puint16");
 
 	public static TypeReference uint32 = TypeReference.findOrCreate(solidity, "Puint32");
 
@@ -102,9 +102,9 @@ public class SolidityTypes {
 
 	public static TypeReference int8 = TypeReference.findOrCreate(solidity, "Pint8");
 
-	public static TypeReference int24 = TypeReference.findOrCreate(solidity, "Pint16");
+	public static TypeReference int24 = TypeReference.findOrCreate(solidity, "Pint24");
 
-	public static TypeReference int16 = TypeReference.findOrCreate(solidity, "Pint24");
+	public static TypeReference int16 = TypeReference.findOrCreate(solidity, "Pint16");
 
 	public static TypeReference int32 = TypeReference.findOrCreate(solidity, "Pint32");
 

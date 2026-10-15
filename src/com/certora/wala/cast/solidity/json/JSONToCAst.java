@@ -25,10 +25,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -91,6 +93,36 @@ import com.ibm.wala.util.intset.MutableIntSet;
 
 public class JSONToCAst {
 	private int idx = 0;
+
+	/**
+	 * Where the {@code return}s of the function being translated jump to. Every value-returning
+	 * function gets one exit: a {@code return e} assigns the return variables and jumps there, and
+	 * the single {@code return} of those variables sits at the exit. Early returns then merge like
+	 * any other branch, so analyses see one phi per returned value instead of several exits.
+	 */
+	private static final class ReturnTarget {
+		final List<String> names;
+		/** The tuple of the return variables' types, for destructuring a returned tuple into them. */
+		final CAstType type;
+		final JSONObject exit;
+
+		ReturnTarget(List<String> names, CAstType type, JSONObject exit) {
+			this.names = names;
+			this.type = type;
+			this.exit = exit;
+		}
+	}
+
+	private final Deque<ReturnTarget> returnTargets = new ArrayDeque<>();
+
+	/** The multiplier each Solidity unit suffix applies to a number literal. */
+	private static final Map<String, BigInteger> SUBDENOMINATIONS = Map.ofEntries(
+		Map.entry("wei", BigInteger.ONE), Map.entry("gwei", BigInteger.TEN.pow(9)),
+		Map.entry("szabo", BigInteger.TEN.pow(12)), Map.entry("finney", BigInteger.TEN.pow(15)),
+		Map.entry("ether", BigInteger.TEN.pow(18)),
+		Map.entry("seconds", BigInteger.ONE), Map.entry("minutes", BigInteger.valueOf(60)),
+		Map.entry("hours", BigInteger.valueOf(3600)), Map.entry("days", BigInteger.valueOf(86400)),
+		Map.entry("weeks", BigInteger.valueOf(604800)), Map.entry("years", BigInteger.valueOf(31536000)));
 
 	private final CAst ast = new CAstImpl();
 	private final Map<Object, CAstType> entityTypes = HashMapFactory.make();
@@ -1111,6 +1143,16 @@ public class JSONToCAst {
 
 			@SuppressWarnings("unused")
 			public CAstNode visitFunctionCall(JSONObject o, SolidityWalkContext context) {
+				CAstNode modular = modularBuiltin(o, context);
+				if (modular != null) {
+					return modular;
+				}
+				if ("structConstructorCall".equals(o.optString("kind"))) {
+					CAstNode struct = structConstruction(o, context);
+					if (struct != null) {
+						return struct;
+					}
+				}
 				CAstNode fun = visit(o.getJSONObject("expression"), context);
 				if (fun == null) {
 					visit(o.getJSONObject("expression"), context);
@@ -1118,7 +1160,84 @@ public class JSONToCAst {
 				CAstNode[] args = Streams.concat(Streams.stream(Optional.of(ast.makeNode(CAstNode.EMPTY))), Streams.stream(o.getJSONArray("arguments").iterator()).map(v -> (JSONObject)v).map(v -> visit(v, context))).toArray(i -> new CAstNode[i]);
 				return record(ast.makeNode(CAstNode.CALL, fun, args), getLocation(o.getString("src")), getType(o, context), context);
 			}
-			
+
+			/**
+			 * A struct constructor {@code S(a, b)} or {@code S({x: a, y: b})} as a fresh struct with one
+			 * field write per member: NEW(S, then a (member, member type, value) triple per member in
+			 * declaration order). Mapping members are not part of a memory struct and take no argument.
+			 * Returns null when the definition cannot be found, leaving the call to translate as before.
+			 */
+			private CAstNode structConstruction(JSONObject o, SolidityWalkContext context) {
+				JSONObject def = getDeclaration(o.getJSONObject("expression"), context);
+				if (def == null || !"StructDefinition".equals(def.optString("nodeType"))) {
+					return null;
+				}
+				List<JSONObject> members = new ArrayList<>();
+				def.getJSONArray("members").forEach(m -> {
+					JSONObject member = (JSONObject) m;
+					if (!"Mapping".equals(member.getJSONObject("typeName").optString("nodeType"))) {
+						members.add(member);
+					}
+				});
+				JSONArray args = o.getJSONArray("arguments");
+				JSONArray names = o.optJSONArray("names");
+				boolean named = names != null && names.length() > 0;
+				if (args.length() != members.size()) {
+					return null;
+				}
+				List<CAstNode> children = new ArrayList<>();
+				children.add(ast.makeConstant(getType(o, context)));
+				for (int i = 0; i < members.size(); i++) {
+					String name = members.get(i).getString("name");
+					int arg = i;
+					if (named) {
+						arg = -1;
+						for (int j = 0; j < names.length(); j++) {
+							if (name.equals(names.getString(j))) {
+								arg = j;
+							}
+						}
+						if (arg < 0) {
+							return null;
+						}
+					}
+					children.add(ast.makeConstant(name));
+					children.add(ast.makeConstant(getType(members.get(i), context)));
+					children.add(visit(args.getJSONObject(arg), context));
+				}
+				return record(ast.makeNode(CAstNode.NEW, children.toArray(new CAstNode[0])),
+						getLocation(o.getString("src")), getType(o, context), context);
+			}
+
+			/**
+			 * The builtins {@code mulmod(a, b, m)} and {@code addmod(a, b, m)} as {@code (a * b) % m}
+			 * and {@code (a + b) % m}, the same lowering the Yul builtins get, so a remainder reads
+			 * the same whichever syntax computes it. Returns null for any other call.
+			 */
+			private CAstNode modularBuiltin(JSONObject o, SolidityWalkContext context) {
+				JSONObject callee = o.getJSONObject("expression");
+				if (!"Identifier".equals(callee.getString("nodeType")) || callee.optInt("referencedDeclaration", 0) >= 0) {
+					return null;
+				}
+				CAstOperator combine;
+				switch (callee.getString("name")) {
+				case "mulmod":
+					combine = CAstOperator.OP_MUL;
+					break;
+				case "addmod":
+					combine = CAstOperator.OP_ADD;
+					break;
+				default:
+					return null;
+				}
+				JSONArray args = o.getJSONArray("arguments");
+				CAstNode a = visit(args.getJSONObject(0), context);
+				CAstNode b = visit(args.getJSONObject(1), context);
+				CAstNode m = visit(args.getJSONObject(2), context);
+				return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MOD, ast.makeNode(CAstNode.BINARY_EXPR, combine, a, b), m),
+						getLocation(o.getString("src")), getType(o, context), context);
+			}
+
 			@SuppressWarnings("unused")
 			public CAstNode visitFunctionCallOptions(JSONObject o, SolidityWalkContext context) {
 				return visit(o.getJSONObject("expression"), context);
@@ -1166,7 +1285,29 @@ public class JSONToCAst {
 					.filter(d -> d.has("name") && !"".equals(d.getString("name")))
 					.forEach(d -> visit(d, child));
 					
-					CAstNode body = visit(o.getJSONObject("body"), child);
+					JSONArray retParams = o.getJSONObject("returnParameters").getJSONArray("parameters");
+					List<String> retNames = new ArrayList<>();
+					for (int i = 0; i < retParams.length(); i++) {
+						JSONObject p = retParams.getJSONObject(i);
+						retNames.add(p.has("name") && !"".equals(p.getString("name")) ? p.getString("name")
+								: "$ret" + i + "$" + idx++);
+					}
+					JSONObject exitKey = JSONObject.fromJson("{\"nodeType\": \"FunctionExit\"}", JSONObject.class);
+
+					CAstNode body;
+					if (retNames.isEmpty()) {
+						body = visit(o.getJSONObject("body"), child);
+					} else {
+						CAstType retTuple = SolidityTupleType.get(Streams.stream(retParams.iterator())
+							.map(x -> getType((JSONObject)x, context))
+							.toArray(i -> new CAstType[i]));
+						returnTargets.push(new ReturnTarget(retNames, retTuple, exitKey));
+						try {
+							body = visit(o.getJSONObject("body"), child);
+						} finally {
+							returnTargets.pop();
+						}
+					}
 					
 					if ("constructor".equals(o.getString("kind"))) {
 						Streams.stream(o.getJSONArray("modifiers").iterator()).forEach(x -> {
@@ -1188,30 +1329,30 @@ public class JSONToCAst {
 						});
 					}
 
-					List<CAstNode> retDecls = new ArrayList<>(Streams
-							.stream(o.getJSONObject("returnParameters").getJSONArray("parameters").iterator())
-							.filter(x -> ((JSONObject) x).has("name") && !"".equals(((JSONObject)x).getString("name"))).map(x -> {
-								JSONObject p = (JSONObject) x;
-								CAstSymbol symbol = new CAstSymbolImpl(p.getString("name"), getType(p, context), false);
-								return ast.makeNode(CAstNode.BLOCK_STMT,
-										ast.makeNode(CAstNode.DECL_STMT, ast.makeConstant(symbol)),
-										ast.makeNode(CAstNode.ASSIGN, 
-											ast.makeNode(CAstNode.VAR, ast.makeConstant(p.getString("name"))),
-											ast.makeConstant(0)));
-							}).toList());
+					List<CAstNode> retDecls = new ArrayList<>();
+					for (int i = 0; i < retParams.length(); i++) {
+						CAstSymbol symbol = new CAstSymbolImpl(retNames.get(i), getType(retParams.getJSONObject(i), context), false);
+						retDecls.add(ast.makeNode(CAstNode.BLOCK_STMT,
+								ast.makeNode(CAstNode.DECL_STMT, ast.makeConstant(symbol)),
+								ast.makeNode(CAstNode.ASSIGN,
+									ast.makeNode(CAstNode.VAR, ast.makeConstant(retNames.get(i))),
+									ast.makeConstant(0))));
+					}
 
-					if (retDecls.size() > 0) {
-						CAstType tt = SolidityTupleType.get(Streams.stream(o.getJSONObject("returnParameters").getJSONArray("parameters").iterator())
+					if (!retNames.isEmpty()) {
+						CAstType tt = SolidityTupleType.get(Streams.stream(retParams.iterator())
 							.map(x -> getType((JSONObject)x, context))
 							.toArray(i -> new CAstType[i]));
 
-						CAstNode[] retVals = Streams
-						   .stream(o.getJSONObject("returnParameters").getJSONArray("parameters").iterator())
-						   .filter(x -> ((JSONObject) x).has("name") && !"".equals(((JSONObject)x).getString("name")))
-						   .map(x -> ast.makeNode(CAstNode.VAR,
-								   ast.makeConstant(((JSONObject) x).getString("name"))))
+						CAstNode[] retVals = retNames.stream()
+						   .map(name -> ast.makeNode(CAstNode.VAR, ast.makeConstant(name)))
 						   .toArray(i -> new CAstNode[i]);
-						
+
+						// the single exit every return jumps to, so the returned values merge here
+						CAstNode exitLabel = ast.makeNode(CAstNode.LABEL_STMT, ast.makeConstant("exit" + idx++),
+							ast.makeNode(CAstNode.EMPTY));
+						child.cfg().map(exitKey, exitLabel);
+
 						CAstNode ret = ast.makeNode(CAstNode.RETURN, 
 							(retVals.length == 1)?
 							retVals[0]:
@@ -1219,7 +1360,7 @@ public class JSONToCAst {
 								ast.makeConstant(tt),
 								retVals));
 							
-						body = ast.makeNode(CAstNode.BLOCK_STMT, body, ret);
+						body = ast.makeNode(CAstNode.BLOCK_STMT, body, exitLabel, ret);
 					}
 
 					retDecls.add(body);
@@ -1323,6 +1464,14 @@ public class JSONToCAst {
 				case "number": 
 					Number n;
 					String rawValue = o.getString("value").replace("_", "");
+					BigInteger unit = o.has("subdenomination") && !o.isNull("subdenomination")
+							? SUBDENOMINATIONS.get(o.getString("subdenomination")) : null;
+					if (unit != null) {
+						// "1 weeks" is 604800 and "0.5 ether" is 5e17: the unit is part of the value
+						BigDecimal scaled = (rawValue.startsWith("0x") ? new BigDecimal(new BigInteger(rawValue.substring(2), 16))
+								: new BigDecimal(rawValue)).multiply(new BigDecimal(unit));
+						rawValue = scaled.toBigIntegerExact().toString();
+					}
 					try {
 						int radix = 10;
 						String biv = rawValue;
@@ -1471,11 +1620,50 @@ public class JSONToCAst {
 			
 			@SuppressWarnings("unused")
 			public CAstNode visitReturn(JSONObject o, SolidityWalkContext context) {
+				CAstNode exiting = returnThroughExit(o, context);
+				if (exiting != null) {
+					return exiting;
+				}
 				if (o.has("expression")) {
 					return record(ast.makeNode(CAstNode.RETURN, visit(o.getJSONObject("expression"), context)), getLocation(o.getString("src")), context);					
 				} else {
 					return record(ast.makeNode(CAstNode.RETURN), getLocation(o.getString("src")), context);					
 				}
+			}
+
+			/**
+			 * A {@code return} inside a value-returning function, as assignments to the return
+			 * variables followed by a jump to the function's exit. Returns null when there is no such
+			 * exit (a void function), leaving the statement to translate as an ordinary return.
+			 */
+			private CAstNode returnThroughExit(JSONObject o, SolidityWalkContext context) {
+				ReturnTarget target = returnTargets.peek();
+				if (target == null) {
+					return null;
+				}
+				List<CAstNode> stmts = new ArrayList<>();
+				if (o.has("expression")) {
+					JSONObject value = o.getJSONObject("expression");
+					if (target.names.size() == 1) {
+						stmts.add(ast.makeNode(CAstNode.ASSIGN,
+							ast.makeNode(CAstNode.VAR, ast.makeConstant(target.names.get(0))),
+							visit(value, context)));
+					} else {
+						// destructure, so every returned value is computed before any return variable
+						// is written ("return (y, x)" swaps) and a tuple-valued call is split too
+						stmts.add(ast.makeNode(CAstNode.ASSIGN,
+							ast.makeNode(CAstNode.NEW, ast.makeConstant(target.type),
+								target.names.stream()
+									.map(name -> ast.makeNode(CAstNode.VAR, ast.makeConstant(name)))
+									.toArray(i -> new CAstNode[i])),
+							visit(value, context)));
+					}
+				}
+				CAstNode goExit = ast.makeNode(CAstNode.GOTO);
+				context.cfg().map(goExit, goExit);
+				context.cfg().add(goExit, target.exit, null);
+				stmts.add(goExit);
+				return record(ast.makeNode(CAstNode.BLOCK_STMT, stmts), getLocation(o.getString("src")), context);
 			}
 
 			@SuppressWarnings("unused")
@@ -1667,7 +1855,32 @@ public class JSONToCAst {
 				
 				return result;
 			}
-			
+
+			/**
+			 * {@code do B while (C)} has no CAst loop form (LOOP is test-first), so it is lowered with
+			 * WALA's {@link TranslatorToCAst.DoLoopTranslator} in replicating mode, as the Java front end
+			 * does: {@code B; while (C) B'} with B' a clone of B. Peeling the first iteration keeps the
+			 * loop a test-first LOOP, which is the shape the downstream loop analyses expect. The
+			 * continue and break labels are bound before cloning so that jumps in the clone resolve to
+			 * the clone's continue label and the shared break label.
+			 */
+			@SuppressWarnings("unused")
+			public CAstNode visitDoWhileStatement(JSONObject o, SolidityWalkContext context) {
+				JSONObject contLabel = JSONObject.fromJson("{\"nodeType\": \"Continue\"}", JSONObject.class);
+				JSONObject breakLabel = JSONObject.fromJson("{\"nodeType\": \"Break\"}", JSONObject.class);
+				SolidityLoopContext lc = new SolidityLoopContext(context, breakLabel, contLabel);
+				CAstNode body = visit(o.getJSONObject("body"), lc);
+				CAstNode test = visit(o.getJSONObject("condition"), context);
+
+				CAstNode cs = ast.makeNode(CAstNode.LABEL_STMT, ast.makeConstant("cont" + idx++), ast.makeNode(CAstNode.EMPTY));
+				context.cfg().map(contLabel, cs);
+				CAstNode bs = ast.makeNode(CAstNode.LABEL_STMT, ast.makeConstant("break" + idx++), ast.makeNode(CAstNode.EMPTY));
+				context.cfg().map(breakLabel, bs);
+
+				return record(new TranslatorToCAst.DoLoopTranslator(true, ast).translateDoLoop(test, body, cs, bs, context),
+						getLocation(o.getString("src")), context);
+			}
+
 			@SuppressWarnings("unused")
 			public CAstNode visitInlineAssembly(JSONObject o, SolidityWalkContext context) {
 				JSONObject yulAst = o.getJSONObject("AST");
@@ -1760,20 +1973,43 @@ public class JSONToCAst {
 							case "and":
 			                      return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_BIT_AND, as[0], as[1]), getLocation(o.getString("src")), context);
 							case "shr":
-			                      return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_RSH, as[0], as[1]), getLocation(o.getString("src")), context);
+								  // Yul shr(s, v) is v >> s: the shift amount comes first
+			                      return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_RSH, as[1], as[0]), getLocation(o.getString("src")), context);
 							case "sub":
 			                      return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_SUB, as[0], as[1]), getLocation(o.getString("src")), context);
 							case "gt":
 		                        return ast.makeNode(CAstNode.IF_EXPR, record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_GT, as[0], as[1]), getLocation(o.getString("src")), context), ast.makeConstant(1), ast.makeConstant(0));
+							case "sgt": // signed comparison; signedness is not modelled downstream
+		                        return ast.makeNode(CAstNode.IF_EXPR, record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_GT, as[0], as[1]), getLocation(o.getString("src")), context), ast.makeConstant(1), ast.makeConstant(0));
 							case "iszero":
 		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_EQ, as[0], ast.makeConstant(0)), getLocation(o.getString("src")), context);
-							case "not":
-		                        return record(ast.makeNode(CAstNode.UNARY_EXPR, CAstOperator.OP_NOT, as[0]), getLocation(o.getString("src")), context);
+							case "not": // bitwise complement, not logical negation
+		                        return record(ast.makeNode(CAstNode.UNARY_EXPR, CAstOperator.OP_BITNOT, as[0]), getLocation(o.getString("src")), context);
 							case "lt":
 		                        return ast.makeNode(CAstNode.IF_EXPR, record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_LT, as[0], as[1]), getLocation(o.getString("src")), context), ast.makeConstant(1), ast.makeConstant(0));
+							case "slt": // signed comparison; signedness is not modelled downstream
+		                        return ast.makeNode(CAstNode.IF_EXPR, record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_LT, as[0], as[1]), getLocation(o.getString("src")), context), ast.makeConstant(1), ast.makeConstant(0));
+							case "shl": // Yul shl(s, v) is v << s: the shift amount comes first
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_LSH, as[1], as[0]), getLocation(o.getString("src")), context);
+							case "sar": // signed shift right; Yul sar(s, v) is v >> s
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_RSH, as[1], as[0]), getLocation(o.getString("src")), context);
+							case "xor":
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_BIT_XOR, as[0], as[1]), getLocation(o.getString("src")), context);
+							case "exp":
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_POW, as[0], as[1]), getLocation(o.getString("src")), context);
+							case "sdiv": // signed division; signedness is not modelled downstream
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_DIV, as[0], as[1]), getLocation(o.getString("src")), context);
+							case "smod": // signed remainder; signedness is not modelled downstream
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MOD, as[0], as[1]), getLocation(o.getString("src")), context);
 							case "mulmod":
 		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MOD, ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MUL, as[0], as[1]), as[2]), getLocation(o.getString("src")), context);
+							case "addmod":
+		                        return record(ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_MOD, ast.makeNode(CAstNode.BINARY_EXPR, CAstOperator.OP_ADD, as[0], as[1]), as[2]), getLocation(o.getString("src")), context);
 		                    default:
+		                    	// Dataflow through the builtin is severed: the EMPTY node becomes a
+		                    	// null constant. Say so instead of doing it silently.
+		                    	System.err.println("warning: unhandled Yul builtin '" + fun.getString("name")
+		                    			+ "' at " + o.getString("src") + "; its result is opaque");
 		                    	return ast.makeNode(CAstNode.EMPTY);
 		                   }
 						}
