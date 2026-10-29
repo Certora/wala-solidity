@@ -110,7 +110,7 @@ def main():
 
     # performance
     tm = timings.compute(sorted(glob.glob(f'runs/{tag}-mvn-test*.log')))  # mean over repeated runs
-    m.update(evTimeRuns=WORDS.get(tm['runs'], str(tm['runs'])), evTimeMedian=f"{tm['median']:.1f}", evTimeSlowest=f"{tm['slowest_s']:.0f}",
+    m.update(evTimeRuns=WORDS.get(tm['runs'], str(tm['runs'])), evTimeMedian=f"{tm['median']:.1f}", evTimeSlowest=f"{tm['slowest_s']:.1f}",
              evTimeSlowestName=DISPLAY[tm['slowest']],
              evTimeTotalMin=f"{tm['total'] / 60:.1f}")
 
