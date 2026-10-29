@@ -1,6 +1,6 @@
 {
     "test/data/ArrayContents/ArrayContents.sol": {
-        "/private/tmp/claude-501/-Users-chandrakananandi-research-wala-solidity/d09f94cd-d95e-4193-8298-8fef262d7d60/scratchpad/tc/test/data/ArrayContents/ArrayContents.sol": {
+        "./test/data/ArrayContents/ArrayContents.sol": {
             "1": {
                 "certora_contract_name": "ArrayContents",
                 "id": 1,
@@ -21799,7 +21799,7 @@
                 "usedEvents": []
             },
             "309": {
-                "absolutePath": "/private/tmp/claude-501/-Users-chandrakananandi-research-wala-solidity/d09f94cd-d95e-4193-8298-8fef262d7d60/scratchpad/tc/test/data/ArrayContents/ArrayContents.sol",
+                "absolutePath": "./test/data/ArrayContents/ArrayContents.sol",
                 "exportedSymbols": {
                     "ArrayContents": [
                         308
