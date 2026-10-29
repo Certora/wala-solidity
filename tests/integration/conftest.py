@@ -49,6 +49,13 @@ def discover_conf_files():
 # .sol files that are abstract/interface-only and can't compile standalone
 _ABSTRACT_SOL_FILES = {"ERC20ish.sol", "Engine.sol", "EngineDown.sol"}
 
+# .sol files with no contract named after the file; a bare .sol run analyzes the contract
+# named like the file, so these are only covered through their .conf
+_NO_FILE_NAMED_CONTRACT = {"BaseCall.sol"}
+
+# fixtures whose correct result is all exact (Neither everywhere)
+ALL_EXACT_FIXTURES = {"OverrideDispatch"}
+
 
 def discover_sol_files():
     """Find all unique .sol files in test/data/ that can compile standalone.
@@ -62,7 +69,8 @@ def discover_sol_files():
         if not os.path.isdir(subdir):
             continue
         for fname in sorted(os.listdir(subdir)):
-            if fname.endswith(".sol") and fname not in seen and fname not in _ABSTRACT_SOL_FILES:
+            if (fname.endswith(".sol") and fname not in seen and fname not in _ABSTRACT_SOL_FILES
+                    and fname not in _NO_FILE_NAMED_CONTRACT):
                 seen.add(fname)
                 sols.append((fname, os.path.join(subdir, fname)))
     return sols

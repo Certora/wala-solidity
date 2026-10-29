@@ -12,15 +12,16 @@
  */
 package com.certora.wala.cast.solidity.translator;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.certora.wala.cast.solidity.loader.ContractType;
 import com.certora.wala.cast.solidity.loader.EnumType;
 import com.certora.wala.cast.solidity.loader.FunctionType;
 import com.certora.wala.cast.solidity.loader.SolidityLoader;
+import com.certora.wala.cast.solidity.loader.StructType;
 import com.certora.wala.cast.solidity.tree.SolidityArrayType;
 import com.certora.wala.cast.solidity.tree.SolidityCAstType;
 import com.certora.wala.cast.solidity.tree.SolidityMappingType;
@@ -37,7 +38,6 @@ import com.ibm.wala.cast.tree.CAstType;
 import com.ibm.wala.cast.tree.impl.CAstSymbolImpl;
 import com.ibm.wala.cast.tree.visit.CAstVisitor;
 import com.ibm.wala.cast.types.AstMethodReference;
-import com.ibm.wala.cast.util.SourceBuffer;
 import com.ibm.wala.cfg.AbstractCFG;
 import com.ibm.wala.cfg.IBasicBlock;
 import com.ibm.wala.classLoader.CallSiteReference;
@@ -275,21 +275,40 @@ public class SolidityAstTranslator extends AstTranslator {
 				m = ((SolidityLoader)loader).getReference((FunctionType) recCAstType);
 			}
 			
-			boolean superCall = false;
-			try {
-				Position p = context.top().getSourceMap().getPosition(call.getChild(0));
-				if (p != null) {
-					String selfSrc = new SourceBuffer(p).toString();
-					if (selfSrc.startsWith("super.")) {
-						superCall = true;
+			// A super call's callee is the member access super.<member>, whose base the
+			// CAst builder renders as the magic PRIMITIVE "super". A callee that merely
+			// CONTAINS a super call (super.f(x).half()) has a CALL base and dispatches
+			// normally.
+			CAstNode callee = call.getChild(0);
+			boolean superCall = callee.getKind() == CAstNode.OBJECT_REF
+					&& callee.getChild(0).getKind() == CAstNode.PRIMITIVE
+					&& callee.getChild(0).getChildCount() > 0
+					&& "super".equals(callee.getChild(0).getChild(0).getValue());
+			if (Boolean.getBoolean("debugSuperDispatch")) {
+				boolean oldHeuristic = false;
+				String text = "<no position>";
+				try {
+					com.ibm.wala.cast.tree.CAstSourcePositionMap.Position p = context.top().getSourceMap().getPosition(callee);
+					if (p != null) {
+						text = new com.ibm.wala.cast.util.SourceBuffer(p).toString();
+						oldHeuristic = text.startsWith("super.");
 					}
+				} catch (java.io.IOException e) {
+					text = "<unreadable>";
 				}
-			} catch (IOException e) {
-				assert false : e;
+				if (oldHeuristic != superCall) {
+					System.err.println("[superDispatch] structural=" + superCall + " old=" + oldHeuristic
+							+ " callee=" + callee + " text='" + text.replace('\n', ' ') + "'");
+				}
 			}
-			
+
+			// An explicit base-contract call Base.f(...) is bound statically to Base's f: Solidity
+			// does no virtual dispatch on it, so the most derived override must not be chosen.
+			boolean baseCall = callee.getKind() == CAstNode.OBJECT_REF && isBaseContractRef(context, callee.getChild(0));
+
 			int instNum = context.cfg().getCurrentInstruction();
-			CallSiteReference csr = CallSiteReference.make(instNum, m, superCall? Dispatch.SPECIAL: Dispatch.VIRTUAL);
+			CallSiteReference csr = baseCall? new BaseCallSiteReference(instNum, m)
+					: CallSiteReference.make(instNum, m, superCall? Dispatch.SPECIAL: Dispatch.VIRTUAL);
 
 			Position[] operandPos;
 			if (m.getNumberOfParameters() == argsAndSelf.length && call.getChild(0).getKind() == CAstNode.OBJECT_REF) {
@@ -321,6 +340,12 @@ public class SolidityAstTranslator extends AstTranslator {
 		}
 	}
 
+	/** The name of a contract (not a library or interface) used as the base of a member access, as in {@code Base.f}. */
+	private static boolean isBaseContractRef(WalkContext context, CAstNode n) {
+		return n.getKind() == CAstNode.TYPE_LITERAL_EXPR
+				&& context.top().getNodeTypeMap().getNodeType(n) instanceof ContractType;
+	}
+
 	@Override
 	protected void doFieldRead(WalkContext context, int result, int receiver, CAstNode elt, CAstNode parent) {
 		CAstEntity code = context.top();
@@ -334,6 +359,11 @@ public class SolidityAstTranslator extends AstTranslator {
 			NewSiteReference ns = NewSiteReference.make(context.cfg().getCurrentInstruction(), t);
 			context.cfg().addInstruction(insts.NewInstruction(ns.getProgramCounter(), result, ns));
 			FieldReference self = FieldReference.findOrCreate(SolidityTypes.function, Atom.findOrCreateUnicodeAtom("self"), SolidityTypes.root);
+			if (isBaseContractRef(context, parent.getChild(0))) {
+				// Base.f runs on this contract's own state, like super.f
+				receiver = context.currentScope().allocateTempValue();
+				context.cfg().addInstruction(insts.GetInstruction(context.cfg().getCurrentInstruction(), receiver, 1, self));
+			}
 			context.cfg().addInstruction(insts.PutInstruction(context.cfg().getCurrentInstruction(), result, receiver, self));
 		} else {
 			int instNum = context.cfg().getCurrentInstruction();
@@ -373,6 +403,15 @@ public class SolidityAstTranslator extends AstTranslator {
 			for(int i = 1; i < newNode.getChildCount(); i++) {
 				TypeReference t =SolidityCAstType.getIRType(tt.getElement(i-1));
 				context.cfg().addInstruction(insts.PutInstruction(context.cfg().getCurrentInstruction(), result, context.getValue(newNode.getChild(i)), FieldReference.findOrCreate(SolidityTypes.tuple, Atom.findOrCreateUnicodeAtom(""+(i-1)), t)));
+			}
+		} else if (newNode.getChildCount() >= 1 && newNode.getChild(0).getValue() instanceof StructType) {
+			// S(a, b): a fresh struct, then each member's value written to its field
+			TypeReference st = SolidityCAstType.getIRType((StructType) newNode.getChild(0).getValue());
+			context.cfg().addInstruction(insts.NewInstruction(context.cfg().getCurrentInstruction(), result, NewSiteReference.make(context.cfg().getCurrentInstruction(), st)));
+			for(int i = 1; i + 2 < newNode.getChildCount(); i += 3) {
+				String member = (String) newNode.getChild(i).getValue();
+				TypeReference t = SolidityCAstType.getIRType((CAstType) newNode.getChild(i+1).getValue());
+				context.cfg().addInstruction(insts.PutInstruction(context.cfg().getCurrentInstruction(), result, context.getValue(newNode.getChild(i+2)), FieldReference.findOrCreate(st, Atom.findOrCreateUnicodeAtom(member), t)));
 			}
 		} else if (newNode.getChildCount() == 2 && newNode.getChild(0).getValue() instanceof EnumType) {
 			TypeReference et = SolidityCAstType.getIRType((EnumType)newNode.getChild(0).getValue());
@@ -450,22 +489,31 @@ public class SolidityAstTranslator extends AstTranslator {
 		return false;
 	}
 
+	/**
+	 * Destructuring {@code (x, , y) = rhs}. CAstVisitor's fallback passes the assignment node
+	 * and the right-hand side in the opposite order to {@code visitAssignNodes}, and has
+	 * already translated the right-hand side. Each variable gets its own component, read from
+	 * the tuple after the whole right-hand side is evaluated, so {@code (x, y) = (y, x)} swaps.
+	 */
 	@Override
-	protected boolean doVisitAssignNodes(CAstNode n, WalkContext context, CAstNode v, CAstNode a,
+	protected boolean doVisitAssignNodes(CAstNode n, WalkContext context, CAstNode assign, CAstNode rhs,
 			CAstVisitor<WalkContext> visitor) {
-		visitor.visit(a, context, visitor);
 		if (n.getKind() == CAstNode.NEW && n.getChild(0).getValue() instanceof SolidityTupleType) {
 			SolidityTupleType t = (SolidityTupleType) n.getChild(0).getValue();
-			int rval = context.getValue(a);
+			int rval = context.getValue(rhs);
 			for(int i = 1; i < n.getChildCount(); i++) {
 				if (n.getChild(i).getKind() == CAstNode.VAR) {
-					doLocalWrite(context, (String)n.getChild(i).getChild(0).getValue(), SolidityCAstType.getIRType(t.getElement(i-1)), rval);
+					TypeReference eltType = SolidityCAstType.getIRType(t.getElement(i-1));
+					int component = context.currentScope().allocateTempValue();
+					context.cfg().addInstruction(insts.GetInstruction(context.cfg().getCurrentInstruction(), component, rval,
+							FieldReference.findOrCreate(SolidityTypes.tuple, Atom.findOrCreateUnicodeAtom(""+(i-1)), eltType)));
+					doLocalWrite(context, (String)n.getChild(i).getChild(0).getValue(), eltType, component);
 				}
 			}
 			
 			return true;
 		} else {
-			return super.doVisitAssignNodes(n, context, v, a, visitor);
+			return super.doVisitAssignNodes(n, context, assign, rhs, visitor);
 		}
 	}
 

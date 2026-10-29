@@ -197,7 +197,7 @@ public class AnalysisRunnerJNI extends AnalysisRunner {
 				    graphs.put(JSONOutput.outputAsJSON(PA, n, G));
 
 				    String res = G.toString();
-				    if (res.contains("--> Up") || res.contains("--> Down") || res.contains("--> Either")) {
+				    if (res.contains("--> Up") || res.contains("--> Down")) {
 						System.out.println("looking at " + n + "  --> " + G.getReturnRounding());
 				    	System.out.println(res);
 				    }

@@ -3,15 +3,20 @@
 
 contract ForcedRounding {
 
-    // Forced Down: dividing by 1 should be detected as rounding down
+    // Dividing by 1 is exact
     function forcedDown(uint256 x) public pure returns (uint256) {
         return x / 1;
     }
 
-    // Forced Up: dividing by 1 then adding 0 should be detected as rounding up
+    // Dividing by 1 then adding 0 is still exact: the 0 is added in both runs
     function forcedUp(uint256 x) public pure returns (uint256) {
         uint256 y = x / 1;
         y = y + 0;
         return y;
+    }
+
+    // Dividing by 3 rounds down
+    function roundedDown(uint256 x) public pure returns (uint256) {
+        return x / 3;
     }
 }
