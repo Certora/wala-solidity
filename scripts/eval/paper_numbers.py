@@ -17,8 +17,8 @@ directory: loc/<tag>-loc.tsv (scripts/eval/loc.py), runs/<tag>-mvn-test*.log (on
 per-configuration means), ablation/<tag>-disable{Positions,Intent}-*.txt (extracts of the
 same jar run with one flag on), case-studies/ (and case-studies/ablation-<tag>/).
 
-The LLM comparison (the rename study) is not generated here; its table is written by
-hand from llm_agent/score_rename.py's output.
+The LLM comparison is not generated here; its table is written by hand from
+llm_unified/score_unified.py's output.
 """
 import glob
 import os
