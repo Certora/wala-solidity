@@ -838,7 +838,7 @@ public class RoundingRecognition {
 	 * member is never written here, or only by the literal that builds the struct (whose write
 	 * directly follows the allocation, before any read can see the struct).
 	 */
-	private static boolean unwrittenAfterInit(int ref, FieldReference f, DefUse du) {
+	static boolean unwrittenAfterInit(int ref, FieldReference f, DefUse du) {
 		int writes = 0;
 		for (Iterator<SSAInstruction> uses = du.getUses(ref); uses.hasNext();) {
 			if (uses.next() instanceof SSAPutInstruction put && put.getRef() == ref

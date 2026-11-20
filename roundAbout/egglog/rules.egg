@@ -1,11 +1,15 @@
 ; RoundAbout phase 1 intent rules, step 0 prototype.  egglog 3.0.0.
 ;
 ; Terms are the pure arithmetic of one method's SSA IR.  Leaf v is SSA value v
-; (a parameter, phi, load or call result); Num c is a constant.
+; (a parameter, phi, load or call result); Num c is a constant, BigNum one that
+; does not fit in i64 (never folded); Field r m is member m of struct r, read
+; where nothing can write it, so every read of it is the same value.
 
 (datatype Term
   (Leaf i64)
   (Num i64)
+  (BigNum String)
+  (Field i64 String)
   (Add Term Term)
   (Sub Term Term)
   (Mul Term Term)
@@ -22,6 +26,7 @@
 ; never takes a constant divisor as a bias (RoundingRecognition.biasNumerator).
 (relation HasLeaf (Term))
 (rule ((= e (Leaf v))) ((HasLeaf e)))
+(rule ((= e (Field r m))) ((HasLeaf e)))
 (rule ((= e (Add a b)) (HasLeaf a)) ((HasLeaf e)))
 (rule ((= e (Add a b)) (HasLeaf b)) ((HasLeaf e)))
 (rule ((= e (Sub a b)) (HasLeaf a)) ((HasLeaf e)))

@@ -102,6 +102,7 @@ public class RoundingAnalysis {
 				}
 			});
 			recognitionCache.put(n, r);
+			EgglogExport.export(n, r);
 		}
 		return r;
 	}
