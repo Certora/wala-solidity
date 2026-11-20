@@ -1,7 +1,8 @@
 ; Hand-written checks for rules.egg (egglog 3.0.0).
 ; Run from this directory, since egglog resolves include from the current directory:
 ;   cd roundAbout/egglog && egglog cases.egg
-; Expected: 9 Intent rows, for cases 1-6 and 10-12.
+; Expected: the three checks pass, and 16 Intent rows, for cases 1-6, 10-12,
+; 14-17, 19, 21 and 22 (19 with condition 3, the rest with 0).
 
 (include "rules.egg")
 
@@ -35,6 +36,43 @@
 ; 13 (x + 9) / 10                         no Intent (constant divisor; no splitting)
 (Root 13 (Div (Add (Leaf 131) (Num 9)) (Num 10)))
 
-(run 10)
+; Indicator and masked rows.  Ind b c is [b != 0]; c > 0 is a flag condition.
+; 14 N/D + [N % D != 0]                   Intent, n = N
+(let $t14 (Add (Div (Leaf 141) (Leaf 142)) (Ind (Rem (Leaf 141) (Leaf 142)) 0)))
+(Root 14 $t14)
+; 15 [N % D != 0] + N/D                   Intent, n = N (other order)
+(Root 15 (Add (Ind (Rem (Leaf 151) (Leaf 152)) 0) (Div (Leaf 151) (Leaf 152))))
+; 16 (a*b)/d + [(b*a) % d != 0]           Intent, n = a*b (mulmod spelled with the other order)
+(Root 16 (Add (Div (Mul (Leaf 161) (Leaf 162)) (Leaf 163)) (Ind (Rem (Mul (Leaf 162) (Leaf 161)) (Leaf 163)) 0)))
+; 17 [N != 0] * ((N - 1)/D + 1)           Intent, n = N (masked)
+(Root 17 (Mul (Ind (Leaf 171) 0) (Add (Div (Sub (Leaf 171) (Num 1)) (Leaf 172)) (Num 1))))
+; 18 N/D + [N % D == 0]                   no Intent (wrong polarity)
+(Root 18 (Add (Div (Leaf 181) (Leaf 182)) (IndZero (Rem (Leaf 181) (Leaf 182)) 0)))
+; 19 N/D + [f && N % D != 0]              Intent, n = N, condition 3 (flag form)
+(let $t19 (Add (Div (Leaf 191) (Leaf 192)) (Ind (Rem (Leaf 191) (Leaf 192)) 3)))
+(Root 19 $t19)
+; 20 (N - 1)/D + 1                        no Intent (guarded: the N != 0 guard is decided in Java)
+(Root 20 (Add (Div (Sub (Leaf 201) (Num 1)) (Leaf 202)) (Num 1)))
+
+; Two sites equal over the integers: after the readings phase they share an
+; e-class, and Intent still says which site's code gave which reading.
+; 21 (N + D - 1) / D                      Intent, n = N (bias)
+(let $t21 (Div (Sub (Add (Leaf 211) (Leaf 212)) (Num 1)) (Leaf 212)))
+(Root 21 $t21)
+; 22 N/D + [N % D != 0], same N and D     Intent, n = N (indicator)
+(let $t22 (Add (Div (Leaf 211) (Leaf 212)) (Ind (Rem (Leaf 211) (Leaf 212)) 0)))
+(Root 22 $t22)
+
+; Both phases.  The readings phase is optional (run_facts.py stops after match,
+; and the Intent rows below are the same without it); it runs here so that the
+; three checks cover it.
+(run-schedule (saturate (run match)) (saturate (run readings)))
+
+; The unconditional reading joined the site's class; the conditional one did not.
+(check (= $t14 (DivUp (Leaf 141) (Leaf 142))))
+(fail (check (= $t19 (DivUp (Leaf 191) (Leaf 192)))))
+; The two equal sites now share one class.
+(check (= $t21 $t22))
+
 (print-size)
 (print-function Intent :mode csv)

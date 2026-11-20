@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
 import com.certora.wala.analysis.defuse.DefUseGraph;
@@ -138,7 +139,7 @@ public class RoundingRecognition {
 					int a = DISABLE_INTENT ? -1 : biasNumerator(bin);
 					if (a > 0) {
 						divDir.put(bin.iIndex(), Direction.Up);
-						ceilings.put(bin.getDef(), new Ceiling(factors(a), bin.getUse(1), Collections.emptyList()));
+						ceilings.put(bin.getDef(), new Ceiling("bias", factors(a), bin.getUse(1), Collections.emptyList()));
 					} else {
 						divDir.put(bin.iIndex(), Direction.Down);
 					}
@@ -268,12 +269,15 @@ public class RoundingRecognition {
 	 * {@code roundsUp} is constantly true. Those list the phi operands that must be infeasible.
 	 */
 	public static final class Ceiling {
+		/** Which idiom row matched: bias, branch, indicator, guarded or masked (for reports only). */
+		public final String kind;
 		public final int[] dividendFactors;
 		public final int divisorVN;
 		/** Pairs {phi def, operand index} that must be infeasible for the value to be a ceiling. */
 		public final List<int[]> deadPhiOperands;
 
-		Ceiling(int[] dividendFactors, int divisorVN, List<int[]> deadPhiOperands) {
+		Ceiling(String kind, int[] dividendFactors, int divisorVN, List<int[]> deadPhiOperands) {
+			this.kind = kind;
 			this.dividendFactors = dividendFactors;
 			this.divisorVN = divisorVN;
 			this.deadPhiOperands = deadPhiOperands;
@@ -283,6 +287,16 @@ public class RoundingRecognition {
 	/** The ceiling that the definition of {@code vn} (a phi, add or mul) computes, or null. */
 	public Ceiling ceiling(int vn) {
 		return ceilings.get(vn);
+	}
+
+	/** For {@link EgglogExport}: the literals of this method, computed as {@link #recognizeCeilings} does. */
+	IntFunction<Literal> literals() {
+		return new Literals(dug.ir(), dug.du(), CALL_DEPTH)::of;
+	}
+
+	/** For {@link EgglogExport}: true if the call is modelled as {@code floor(a_1 * ... * a_k / d)}. */
+	boolean isFloorQuotient(SSAAbstractInvokeInstruction call) {
+		return calls.isFloorQuotient(call);
 	}
 
 	/**
@@ -352,7 +366,7 @@ public class RoundingRecognition {
 		int zeroArm = guard.positive ? arms[1] : arms[0];
 		Quotient q = quotient(zeroArm);
 		if (q != null && isPlusOne(nonzeroArm, zeroArm) && isRemainderOf(guard.base, q)) {
-			return new Ceiling(q.factors, q.divisor, guard.dead);
+			return new Ceiling("branch", q.factors, q.divisor, guard.dead);
 		}
 		return null;
 	}
@@ -366,7 +380,7 @@ public class RoundingRecognition {
 			}
 			Literal ind = literals.of(add.getUse(1 - i));
 			if (ind.indicator && ind.positive && isRemainderOf(ind.base, q)) {
-				return new Ceiling(q.factors, q.divisor, ind.dead);
+				return new Ceiling("indicator", q.factors, q.divisor, ind.dead);
 			}
 		}
 		return null;
@@ -377,7 +391,7 @@ public class RoundingRecognition {
 			Dominators<ISSABasicBlock> dom, Literals literals) {
 		Predecrement p = predecrement(add.getDef());
 		if (p != null && nonzeroAt(p.dividendVN, cfg.getBlockForInstruction(add.iIndex()), ir, cfg, dom, literals)) {
-			return new Ceiling(p.quotient.factors, p.quotient.divisor, Collections.emptyList());
+			return new Ceiling("guarded", p.quotient.factors, p.quotient.divisor, Collections.emptyList());
 		}
 		return null;
 	}
@@ -391,7 +405,7 @@ public class RoundingRecognition {
 			}
 			Literal mask = literals.of(mul.getUse(1 - i));
 			if (mask.indicator && mask.positive && sameExpr(mask.base, p.dividendVN, dug.du())) {
-				return new Ceiling(p.quotient.factors, p.quotient.divisor, mask.dead);
+				return new Ceiling("masked", p.quotient.factors, p.quotient.divisor, mask.dead);
 			}
 		}
 		return null;
@@ -563,7 +577,7 @@ public class RoundingRecognition {
 	 * ({@code positive}) or when {@code base == 0} does (not {@code positive}), on the paths where
 	 * the {@code dead} phi operands are not taken. {@code indicator}: v is always 0 or 1.
 	 */
-	private static final class Literal {
+	static final class Literal {
 		final int base;
 		final boolean positive;
 		final boolean indicator;

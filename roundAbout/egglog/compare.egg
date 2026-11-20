@@ -1,12 +1,14 @@
 ; What phase 1 decides today, written by EgglogExport next to the terms, and
 ; where egglog agrees with it.  Load after rules.egg.
 
-; TodayUp v n d: today's matcher reads division v as div(n, d, Up).
-(relation TodayUp (i64 Term Term))
+; TodayUp v n d c: today's matcher reads site v as div(n, d, Up) under
+; condition c (0 = always).  The facts file's ";@today v kind" line says which
+; row matched (bias, indicator, guarded, masked).
+(relation TodayUp (i64 Term Term i64))
 ; TodayExact v: division v is by the constant 1.
 (relation TodayExact (i64))
 
 ; Agree v: egglog finds the same reading, with n and d equal up to the merge
 ; rules (so a product written in another order still agrees).
 (relation Agree (i64))
-(rule ((Intent v n d) (TodayUp v n d)) ((Agree v)))
+(rule ((Intent v n d c) (TodayUp v n d c)) ((Agree v)) :ruleset match)

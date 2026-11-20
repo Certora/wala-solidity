@@ -15,7 +15,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.IntFunction;
 
 import com.ibm.wala.cast.loader.AstMethod;
 import com.ibm.wala.cast.tree.CAstSourcePositionMap.Position;
@@ -23,24 +28,36 @@ import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.shrike.shrikeBT.IBinaryOpInstruction;
 import com.ibm.wala.ssa.DefUse;
 import com.ibm.wala.ssa.IR;
+import com.ibm.wala.ssa.ISSABasicBlock;
+import com.ibm.wala.ssa.SSAAbstractInvokeInstruction;
 import com.ibm.wala.ssa.SSABinaryOpInstruction;
 import com.ibm.wala.ssa.SSAGetInstruction;
 import com.ibm.wala.ssa.SSAInstruction;
+import com.ibm.wala.ssa.SSAPhiInstruction;
 import com.ibm.wala.ssa.SymbolTable;
 import com.ibm.wala.util.collections.HashMapFactory;
+import com.ibm.wala.util.collections.HashSetFactory;
 
 /**
- * E-graph prototype, step 1: writes the arithmetic around each division of a call-graph node as
- * egglog facts, together with what phase 1 decides for that division today, so that
+ * E-graph prototype: writes the arithmetic around each candidate idiom of a call-graph node as
+ * egglog facts, together with what phase 1 decides there today, so that
  * {@code roundAbout/egglog/run_facts.py} can compare the two. Off unless
  * {@code -DexportEgglog=<dir>} or the environment variable {@code EXPORT_EGGLOG=<dir>} is set; it
  * only writes files and never changes the analysis.
  *
- * <p>Each division's operands are followed through {@code +}, {@code -}, {@code *} and {@code /};
- * any other value becomes {@code (Leaf vn)}. Two reads of the same struct member become one
- * {@code (Field ref name)} under the condition {@link RoundingRecognition}'s structural equality
- * uses, so the e-graph equates exactly the values today's matcher equates. The terms are written
- * as one {@code let} per SSA value, so a shared subterm is written once.
+ * <p>Terms follow {@code +}, {@code -}, {@code *}, {@code /} and {@code %}. A call the library
+ * model treats as {@code floor(a_1 * ... * a_k / d)} becomes a {@code Div}. A 0/1 value that
+ * phase 1's literal analysis recognizes (a comparison with zero, a {@code c ? 1 : 0} select, a
+ * call such as {@code SafeCast.toUint}) becomes {@code (Ind base c)}, 1 exactly when
+ * {@code base != 0}, or {@code (IndZero base c)}, 1 exactly when {@code base == 0}; {@code c} is 0,
+ * or names the phi operands that must be infeasible for that to hold (the flag form), listed in a
+ * {@code ;@cond} line. Two reads of the same unwritten struct member become one {@code (Field ref
+ * name)}, as in {@link RoundingRecognition}'s structural equality. Any other value is
+ * {@code (Leaf vn)}. Each SSA value is written once, as a {@code let}.
+ *
+ * <p>Roots: every division (the bias row), every addition and multiplication with an indicator
+ * in its operands (the indicator and masked rows), and every value today's matcher reads as a
+ * ceiling. Today's ceilings at phis (the branch row) are listed in {@code ;@uncovered} lines.
  */
 final class EgglogExport {
 	static final String DIR = System.getProperty("exportEgglog", System.getenv("EXPORT_EGGLOG"));
@@ -52,7 +69,7 @@ final class EgglogExport {
 		}
 		try {
 			new EgglogExport(n, recognition).write();
-		} catch (IOException | RuntimeException e) {
+		} catch (IOException | RuntimeException | StackOverflowError e) {
 			System.err.println("exportEgglog: " + n + ": " + e);
 		}
 	}
@@ -62,9 +79,14 @@ final class EgglogExport {
 	private final DefUse du;
 	private final SymbolTable st;
 	private final RoundingRecognition recognition;
+	private final IntFunction<RoundingRecognition.Literal> literals;
 	private final Map<Integer, String> names = HashMapFactory.make();
+	private final Map<Integer, Boolean> hasInd = HashMapFactory.make();
+	private final Set<Integer> inProgress = HashSetFactory.make();
+	private final Map<String, Integer> conditions = HashMapFactory.make();
 	private final StringBuilder lets = new StringBuilder();
 	private final StringBuilder roots = new StringBuilder();
+	private final StringBuilder notes = new StringBuilder();
 
 	private EgglogExport(CGNode node, RoundingRecognition recognition) {
 		this.node = node;
@@ -72,15 +94,24 @@ final class EgglogExport {
 		this.du = node.getDU();
 		this.st = ir.getSymbolTable();
 		this.recognition = recognition;
+		this.literals = recognition.literals();
 	}
 
 	private void write() throws IOException {
 		int count = 0;
 		for (SSAInstruction inst : ir.getInstructions()) {
-			if (inst instanceof SSABinaryOpInstruction div
-					&& div.getOperator() == IBinaryOpInstruction.Operator.DIV) {
-				addRoot(div);
+			if (inst instanceof SSABinaryOpInstruction bin && isRoot(bin)) {
+				addRoot(bin);
 				count++;
+			}
+		}
+		for (ISSABasicBlock bb : ir.getControlFlowGraph()) {
+			for (Iterator<SSAPhiInstruction> phis = bb.iteratePhis(); phis.hasNext();) {
+				SSAPhiInstruction phi = phis.next();
+				RoundingRecognition.Ceiling c = recognition.ceiling(phi.getDef());
+				if (c != null) {
+					notes.append(";@uncovered ").append(phi.getDef()).append(' ').append(c.kind).append('\n');
+				}
 			}
 		}
 		if (count == 0) {
@@ -90,24 +121,37 @@ final class EgglogExport {
 		out.append(";@method ").append(node.getMethod().getSignature()).append('\n');
 		out.append(";@context ").append(oneLine(node.getContext().toString())).append('\n');
 		out.append(";@source ").append(sourcePath()).append('\n');
-		out.append(lets).append(roots);
+		out.append(notes).append(lets).append(roots);
 		Path dir = Paths.get(DIR);
 		Files.createDirectories(dir);
 		Files.writeString(dir.resolve(fileName()), out.toString(), StandardCharsets.UTF_8);
 	}
 
-	/** {@code (Root v t)}, a {@code ;@root} line saying where the division is, and today's decision. */
-	private void addRoot(SSABinaryOpInstruction div) {
-		int v = div.getDef();
+	private boolean isRoot(SSABinaryOpInstruction bin) {
+		IBinaryOpInstruction.IOperator o = bin.getOperator();
+		if (o == IBinaryOpInstruction.Operator.DIV) {
+			return true;
+		}
+		if (o == IBinaryOpInstruction.Operator.ADD || o == IBinaryOpInstruction.Operator.MUL) {
+			return recognition.ceiling(bin.getDef()) != null || hasInd(bin.getUse(0)) || hasInd(bin.getUse(1));
+		}
+		return false;
+	}
+
+	/** {@code (Root v t)}, a {@code ;@root} line saying what and where it is, and today's decision. */
+	private void addRoot(SSABinaryOpInstruction bin) {
+		int v = bin.getDef();
 		String t = term(v);
-		roots.append(";@root ").append(v).append(' ').append(position(div)).append('\n');
+		String kind = bin.getOperator().toString().toLowerCase();
+		roots.append(";@root ").append(v).append(' ').append(kind).append(' ').append(position(bin)).append('\n');
 		roots.append("(Root ").append(v).append(' ').append(t).append(")\n");
-		Direction today = recognition.divDirection(div);
 		RoundingRecognition.Ceiling c = recognition.ceiling(v);
-		if (today == Direction.Up && c != null) {
+		if (c != null) {
+			roots.append(";@today ").append(v).append(' ').append(c.kind).append('\n');
 			roots.append("(TodayUp ").append(v).append(' ').append(product(c.dividendFactors)).append(' ')
-					.append(term(c.divisorVN)).append(")\n");
-		} else if (today == Direction.Neither) {
+					.append(term(c.divisorVN)).append(' ').append(condition(c.deadPhiOperands)).append(")\n");
+		} else if (bin.getOperator() == IBinaryOpInstruction.Operator.DIV
+				&& recognition.divDirection(bin) == Direction.Neither) {
 			roots.append("(TodayExact ").append(v).append(")\n");
 		}
 	}
@@ -121,13 +165,34 @@ final class EgglogExport {
 		return p;
 	}
 
+	/** 0 for no condition; otherwise a number for this set of phi operands, listed in a {@code ;@cond} line. */
+	private int condition(List<int[]> dead) {
+		if (dead.isEmpty()) {
+			return 0;
+		}
+		List<String> parts = new ArrayList<>();
+		for (int[] d : dead) {
+			parts.add(d[0] + ":" + d[1]);
+		}
+		parts.sort(null);
+		String key = String.join(",", parts);
+		Integer id = conditions.get(key);
+		if (id == null) {
+			id = conditions.size() + 1;
+			conditions.put(key, id);
+			notes.append(";@cond ").append(id).append(' ').append(key).append('\n');
+		}
+		return id;
+	}
+
 	/** The {@code let} name of {@code vn}'s term, writing the term (operands first) the first time. */
 	private String term(int vn) {
 		String name = names.get(vn);
 		if (name != null) {
 			return name;
 		}
-		String body = body(vn);
+		String body = inProgress.add(vn) ? body(vn) : "(Leaf " + vn + ")"; // a cycle through phis
+		inProgress.remove(vn);
 		name = "$v" + vn;
 		names.put(vn, name);
 		lets.append("(let ").append(name).append(' ').append(body).append(")\n");
@@ -145,17 +210,27 @@ final class EgglogExport {
 		}
 		SSAInstruction def = du.getDef(vn);
 		if (def instanceof SSABinaryOpInstruction bin) {
-			IBinaryOpInstruction.IOperator o = bin.getOperator();
-			String op = o == IBinaryOpInstruction.Operator.ADD ? "Add"
-					: o == IBinaryOpInstruction.Operator.SUB ? "Sub"
-					: o == IBinaryOpInstruction.Operator.MUL ? "Mul"
-					: o == IBinaryOpInstruction.Operator.DIV ? "Div"
-					: null;
+			String op = arithmetic(bin.getOperator());
 			if (op != null) {
 				String l = term(bin.getUse(0));
 				String r = term(bin.getUse(1));
 				return "(" + op + " " + l + " " + r + ")";
 			}
+		}
+		if (def instanceof SSAAbstractInvokeInstruction call && recognition.isFloorQuotient(call)
+				&& call.getNumberOfUses() >= 3) {
+			// uses are [callee, a_1, ..., a_k, d]
+			int n = call.getNumberOfUses();
+			String num = term(call.getUse(n - 2));
+			for (int i = n - 3; i >= 1; i--) {
+				num = "(Mul " + term(call.getUse(i)) + " " + num + ")";
+			}
+			return "(Div " + num + " " + term(call.getUse(n - 1)) + ")";
+		}
+		RoundingRecognition.Literal lit = literals.apply(vn);
+		if (lit.indicator && lit.base != vn) {
+			String base = term(lit.base);
+			return "(" + (lit.positive ? "Ind" : "IndZero") + " " + base + " " + condition(lit.dead) + ")";
 		}
 		if (def instanceof SSAGetInstruction g && !g.isStatic()
 				&& PositionValues.isStructField(g.getDeclaredField())
@@ -163,6 +238,37 @@ final class EgglogExport {
 			return "(Field " + g.getRef() + " \"" + g.getDeclaredField().getName() + "\")";
 		}
 		return "(Leaf " + vn + ")";
+	}
+
+	private static String arithmetic(IBinaryOpInstruction.IOperator o) {
+		return o == IBinaryOpInstruction.Operator.ADD ? "Add"
+				: o == IBinaryOpInstruction.Operator.SUB ? "Sub"
+				: o == IBinaryOpInstruction.Operator.MUL ? "Mul"
+				: o == IBinaryOpInstruction.Operator.DIV ? "Div"
+				: o == IBinaryOpInstruction.Operator.REM ? "Rem"
+				: null;
+	}
+
+	/** True if {@code vn} is an indicator, or a sum or product with one among its operands. */
+	private boolean hasInd(int vn) {
+		Boolean known = hasInd.get(vn);
+		if (known != null) {
+			return known;
+		}
+		hasInd.put(vn, false); // a cycle through phis
+		boolean result = false;
+		if (!st.isConstant(vn)) {
+			SSAInstruction def = du.getDef(vn);
+			if (def instanceof SSABinaryOpInstruction bin && (bin.getOperator() == IBinaryOpInstruction.Operator.ADD
+					|| bin.getOperator() == IBinaryOpInstruction.Operator.MUL)) {
+				result = hasInd(bin.getUse(0)) || hasInd(bin.getUse(1));
+			} else if (!(def instanceof SSABinaryOpInstruction bin2 && arithmetic(bin2.getOperator()) != null)) {
+				RoundingRecognition.Literal lit = literals.apply(vn);
+				result = lit.indicator && lit.base != vn;
+			}
+		}
+		hasInd.put(vn, result);
+		return result;
 	}
 
 	private String sourcePath() {

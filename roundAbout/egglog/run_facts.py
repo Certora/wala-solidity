@@ -4,19 +4,26 @@
 Usage: run_facts.py FACTS_DIR [--egglog PATH] [--timeout SECONDS] [--csv OUT.csv]
 
 Each facts file holds one call-graph node: a (let ...) per SSA value, a (Root v t)
-per division, and TodayUp / TodayExact for what phase 1 decides today. The script
-joins rules.egg, compare.egg and the facts into one program, runs egglog until
-nothing changes (or the timeout), and classifies each division:
+per candidate site (every division, and every + or * with an indicator among its
+operands or a ceiling today), and TodayUp / TodayExact for what phase 1 decides
+today. The script joins rules.egg, compare.egg and the facts into one program,
+runs the match phase of rules.egg until nothing changes (or the timeout), and
+classifies each site. The Intent rows are complete after that phase, so the
+optional readings phase (the union of each DivUp term into its site's class)
+is not run. The classes are:
 
-  same        egglog and today both read it as div(n, d, Up), with equal n and d
-  differ      both find a round-up reading, but with different n or d
+  same        egglog and today both read it as div(n, d, Up), with equal n, d and condition
+  differ      both find a round-up reading, but with different n, d or condition
   egglog-only egglog finds a round-up reading, today does not
-  today-only  today finds one, egglog does not
-  literal     neither does (the division stays div(num, d, Down))
+  today-only  today finds one, egglog does not (expected for the guarded row,
+              whose N != 0 guard is not exported)
+  literal     neither does
   exact       division by the constant 1
 
-A division analyzed in several contexts appears in several files; the summary
-counts call-graph nodes and also distinct division sites (source, method, value).
+Sites are counted by root kind (div, add, mul). A site analyzed in several
+contexts appears in several files; the summary counts call-graph nodes and also
+distinct sites (source, method, value). Today's ceilings at phis (the branch row)
+are not exported and are only counted.
 """
 import argparse
 import csv
@@ -31,7 +38,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 RUN = """
-(run-schedule (saturate (run)))
+(run-schedule (saturate (run match)))
 (print-function Intent :mode csv)
 (print-function TodayUp :mode csv)
 (print-function TodayExact :mode csv)
@@ -40,15 +47,21 @@ RUN = """
 
 
 def parse_header(text):
-    meta, roots = {}, {}
+    meta, roots, today, uncovered = {}, {}, {}, []
     for line in text.splitlines():
         if line.startswith(';@root '):
-            _, v, pos = line.split(' ', 2)
-            roots[int(v)] = pos
-        elif line.startswith(';@'):
+            _, v, kind, pos = line.split(' ', 3)
+            roots[int(v)] = (kind, pos)
+        elif line.startswith(';@today '):
+            _, v, kind = line.split(' ', 2)
+            today[int(v)] = kind
+        elif line.startswith(';@uncovered '):
+            _, v, kind = line.split(' ', 2)
+            uncovered.append(kind)
+        elif line.startswith(';@') and not line.startswith(';@cond '):
             key, _, value = line[2:].partition(' ')
             meta[key] = value
-    return meta, roots
+    return meta, roots, today, uncovered
 
 
 def parse_rows(stdout):
@@ -94,12 +107,15 @@ def main():
         sys.exit(f'no .egg files in {args.facts_dir}')
 
     per_node, per_site, timeouts, errors, multi = Counter(), {}, [], [], []
+    uncovered_sites = {}
     out_rows, times = [], []
     with tempfile.TemporaryDirectory() as tmp:
         prog = Path(tmp) / 'prog.egg'
         for f in files:
             text = f.read_text()
-            meta, roots = parse_header(text)
+            meta, roots, today_kind, uncovered = parse_header(text)
+            for i, kind in enumerate(uncovered):
+                uncovered_sites[(meta.get('source'), meta.get('method'), i, kind)] = kind
             prog.write_text(prelude + text + RUN)
             start = time.monotonic()
             try:
@@ -112,16 +128,17 @@ def main():
                 errors.append((f.name, (p.stderr or p.stdout).strip().splitlines()[-1:]))
                 continue
             rows = parse_rows(p.stdout)
-            for v, pos in sorted(roots.items()):
+            for v, (rootkind, pos) in sorted(roots.items()):
                 kind, intents, today = classify(v, rows)
-                per_node[kind] += 1
-                per_site[(meta.get('source'), meta.get('method'), v)] = kind
+                per_node[(rootkind, kind)] += 1
+                per_site[(meta.get('source'), meta.get('method'), v)] = (rootkind, kind)
                 if len(intents) > 1:
                     multi.append((f.name, pos, intents))
                 out_rows.append({
-                    'file': f.name, 'method': meta.get('method'), 'position': pos, 'root': v, 'kind': kind,
-                    'egglog': ' | '.join(f'n={r[1]} d={r[2]}' for r in intents),
-                    'today': ' | '.join(f'n={r[1]} d={r[2]}' for r in today),
+                    'file': f.name, 'source': meta.get('source'), 'method': meta.get('method'), 'position': pos, 'root': v,
+                    'rootkind': rootkind, 'kind': kind, 'todayrow': today_kind.get(v, ''),
+                    'egglog': ' | '.join(f'n={r[1]} d={r[2]} c={r[3]}' for r in intents),
+                    'today': ' | '.join(f'n={r[1]} d={r[2]} c={r[3]}' for r in today),
                 })
 
     print(f'{len(files)} files (call-graph nodes with a division), egglog {args.egglog}')
@@ -131,24 +148,31 @@ def main():
         print(f'egglog time: {total:.1f} s total, slowest {slowest[0]:.2f} s ({slowest[1]})')
     print(f'timeouts (> {args.timeout:g} s): {len(timeouts)}   errors: {len(errors)}')
     print()
-    print(f'{"kind":<12} {"nodes":>7} {"sites":>7}')
     site_counts = Counter(per_site.values())
+    rootkinds = ('div', 'add', 'mul')
+    print(f'{"":<12}' + ''.join(f'{rk + " nodes":>11}{rk + " sites":>11}' for rk in rootkinds))
     for kind in ('same', 'differ', 'egglog-only', 'today-only', 'literal', 'exact'):
-        print(f'{kind:<12} {per_node[kind]:>7} {site_counts[kind]:>7}')
-    print(f'{"total":<12} {sum(per_node.values()):>7} {len(per_site):>7}')
+        print(f'{kind:<12}' + ''.join(f'{per_node[(rk, kind)]:>11}{site_counts[(rk, kind)]:>11}' for rk in rootkinds))
+    print(f'{"total":<12}' + ''.join(
+        f'{sum(v for (r, _), v in per_node.items() if r == rk):>11}{sum(v for (r, _), v in site_counts.items() if r == rk):>11}'
+        for rk in rootkinds))
+    print(f'\ntoday\'s branch-row ceilings (phis, not exported): {len(uncovered_sites)} distinct')
+    today_rows = Counter(r['todayrow'] for r in {(r['source'], r['method'], r['root']): r for r in out_rows}.values() if r['todayrow'])
+    print('today\'s ceilings at exported sites, by row: ' + ', '.join(f'{k} {v}' for k, v in sorted(today_rows.items())))
 
     shown = set()
     for r in out_rows:
         key = (r['method'], r['position'], r['root'], r['kind'])
         if r['kind'] in ('differ', 'egglog-only', 'today-only') and key not in shown:
             shown.add(key)
-            print(f"\n[{r['kind']}] {r['position']}  {r['method']}  (root {r['root']}, {r['file']})")
+            row = f", today's row: {r['todayrow']}" if r['todayrow'] else ''
+            print(f"\n[{r['kind']}] {r['position']}  {r['method']}  ({r['rootkind']} root {r['root']}{row}, {r['file']})")
             if r['egglog']:
                 print(f"  egglog: {r['egglog']}")
             if r['today']:
                 print(f"  today:  {r['today']}")
     for name, pos, intents in multi:
-        print(f'\n[several readings] {pos} ({name}): ' + ' | '.join(f'n={r[1]} d={r[2]}' for r in intents))
+        print(f'\n[several readings] {pos[1] if isinstance(pos, tuple) else pos} ({name}): ' + ' | '.join(f'n={r[1]} d={r[2]} c={r[3]}' for r in intents))
     for name in timeouts:
         print(f'\n[timeout] {name}')
     for name, msg in errors:

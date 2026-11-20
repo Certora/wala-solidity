@@ -1,9 +1,25 @@
-; RoundAbout phase 1 intent rules, step 0 prototype.  egglog 3.0.0.
+; RoundAbout phase 1 intent rules, e-graph prototype.  egglog 3.0.0.
 ;
 ; Terms are the pure arithmetic of one method's SSA IR.  Leaf v is SSA value v
 ; (a parameter, phi, load or call result); Num c is a constant, BigNum one that
 ; does not fit in i64 (never folded); Field r m is member m of struct r, read
 ; where nothing can write it, so every read of it is the same value.
+;
+; Div is the program's truncating division, so it is also the reading
+; div(n, d, Down); DivUp n d is the reading div(n, d, Up).  Ind b c is a 0/1
+; value that is 1 exactly when b != 0, IndZero b c one that is 1 exactly when
+; b == 0.  c = 0 means always; c > 0 means only on the paths where the phi
+; operands listed in the facts file's ";@cond c" line are infeasible (the flag
+; form: which calling contexts make that true is decided in Java).
+;
+; Run the match phase:
+;   (run-schedule (saturate (run match)))
+; match:    merge rules, and the idiom rules, which record Intent rows.
+; The Intent rows are the result.  An optional second phase,
+;   (saturate (run readings))
+; also merges each unconditional reading into its site's e-class.  Nothing
+; reads the merged classes yet, so run_facts.py stops after match; cases.egg
+; runs both phases to check the second one.
 
 (datatype Term
   (Leaf i64)
@@ -13,50 +29,88 @@
   (Add Term Term)
   (Sub Term Term)
   (Mul Term Term)
-  (Div Term Term))
+  (Div Term Term)
+  (Rem Term Term)
+  (Ind Term i64)
+  (IndZero Term i64)
+  (DivUp Term Term))
+
+(ruleset match)
+(ruleset readings)
 
 ; Root v t: SSA value v is defined by term t.  Written by the exporter.
 (relation Root (i64 Term))
 
-; Intent v n d: value v has the reading div(n, d, Up).  The literal reading,
-; div(numerator, d, Down), is always there and is not stored.
-(relation Intent (i64 Term Term))
+; Intent v n d c: the code of site v itself reads as div(n, d, Up), under
+; condition c.  This records where each reading came from: after the optional
+; readings phase, two sites equal over the integers share an e-class, and the
+; class alone no longer says which site's code supports which reading.
+(relation Intent (i64 Term Term i64))
 
 ; HasLeaf e: e mentions an SSA value, so it is not a constant.  Today's matcher
 ; never takes a constant divisor as a bias (RoundingRecognition.biasNumerator).
 (relation HasLeaf (Term))
-(rule ((= e (Leaf v))) ((HasLeaf e)))
-(rule ((= e (Field r m))) ((HasLeaf e)))
-(rule ((= e (Add a b)) (HasLeaf a)) ((HasLeaf e)))
-(rule ((= e (Add a b)) (HasLeaf b)) ((HasLeaf e)))
-(rule ((= e (Sub a b)) (HasLeaf a)) ((HasLeaf e)))
-(rule ((= e (Mul a b)) (HasLeaf a)) ((HasLeaf e)))
-(rule ((= e (Mul a b)) (HasLeaf b)) ((HasLeaf e)))
+(rule ((= e (Leaf v))) ((HasLeaf e)) :ruleset match)
+(rule ((= e (Field r m))) ((HasLeaf e)) :ruleset match)
+(rule ((= e (Add a b)) (HasLeaf a)) ((HasLeaf e)) :ruleset match)
+(rule ((= e (Add a b)) (HasLeaf b)) ((HasLeaf e)) :ruleset match)
+(rule ((= e (Sub a b)) (HasLeaf a)) ((HasLeaf e)) :ruleset match)
+(rule ((= e (Mul a b)) (HasLeaf a)) ((HasLeaf e)) :ruleset match)
+(rule ((= e (Mul a b)) (HasLeaf b)) ((HasLeaf e)) :ruleset match)
 
 ; ---------------------------------------------------------------------------
 ; Merge rules: the integer and the real value agree on both sides (where
-; neither side reverts), so the terms share an e-class.  Matching only:
-; a reordered spelling is never extracted into Q.
+; neither side reverts).  Matching only: a reordered spelling is never
+; extracted into Q.
 
-(rewrite (Add a b) (Add b a))
-(birewrite (Add (Add a b) c) (Add a (Add b c)))
-(birewrite (Add (Sub a b) c) (Sub (Add a c) b))
-(rewrite (Mul a b) (Mul b a))
-(birewrite (Mul (Mul a b) c) (Mul a (Mul b c)))
+(rewrite (Add a b) (Add b a) :ruleset match)
+(birewrite (Add (Add a b) c) (Add a (Add b c)) :ruleset match)
+(birewrite (Add (Sub a b) c) (Sub (Add a c) b) :ruleset match)
+(rewrite (Mul a b) (Mul b a) :ruleset match)
+(birewrite (Mul (Mul a b) c) (Mul a (Mul b c)) :ruleset match)
 
 ; Constant folding.  Folds constants already in the term; never splits one.
-(rewrite (Add (Num a) (Num b)) (Num (+ a b)))
-(rewrite (Sub (Sub x (Num a)) (Num b)) (Sub x (Num (+ a b))))
-(rewrite (Add (Sub x (Num a)) (Num b)) (Sub x (Num (- a b))) :when ((>= a b)))
-(rewrite (Add (Sub x (Num a)) (Num b)) (Add x (Num (- b a))) :when ((< a b)))
+(rewrite (Add (Num a) (Num b)) (Num (+ a b)) :ruleset match)
+(rewrite (Sub (Sub x (Num a)) (Num b)) (Sub x (Num (+ a b))) :ruleset match)
+(rewrite (Add (Sub x (Num a)) (Num b)) (Sub x (Num (- a b))) :when ((>= a b)) :ruleset match)
+(rewrite (Add (Sub x (Num a)) (Num b)) (Add x (Num (- b a))) :when ((< a b)) :ruleset match)
 
 ; ---------------------------------------------------------------------------
-; Intent rules: the integer value agrees, the real value does not, so they
-; record a link instead of merging.
+; Idiom rules (Table 1).  Each records an Intent row for the site whose code
+; matched; the optional readings phase merges the unconditional ones.
 
 ; bias: (n + d - 1) / d  ->  div(n, d, Up)
 (rule ((Root v t)
        (= t (Div num d))
        (= num (Sub (Add n d) (Num 1)))
        (HasLeaf d))
-      ((Intent v n d)))
+      ((Intent v n d 0))
+      :ruleset match)
+
+; indicator (and flag, when c > 0): n / d + [n % d != 0]  ->  div(n, d, Up)
+(rule ((Root v t)
+       (= t (Add q i))
+       (= q (Div n d))
+       (= i (Ind (Rem n d) c)))
+      ((Intent v n d c))
+      :ruleset match)
+
+; masked: [n != 0] * ((n - 1) / d + 1)  ->  div(n, d, Up)
+(rule ((Root v t)
+       (= t (Mul m p))
+       (= m (Ind n c))
+       (= p (Add (Div (Sub n (Num 1)) d) (Num 1))))
+      ((Intent v n d c))
+      :ruleset match)
+
+; ---------------------------------------------------------------------------
+; Readings (optional phase, not run by run_facts.py): an unconditional reading
+; is equal to the site over the integers (behavior preservation), so it joins
+; the site's e-class.  A conditional one (c > 0) holds only in some calling
+; contexts and stays an Intent row only.  After this phase the members of a
+; class can have different real values, so a direction is not a property of a
+; class.
+
+(rule ((Intent v n d 0) (Root v t))
+      ((union t (DivUp n d)))
+      :ruleset readings)
