@@ -22,12 +22,19 @@ is not run. The classes are:
 
 Sites are counted by root kind (div, add, mul). A site analyzed in several
 contexts appears in several files; the summary counts call-graph nodes and also
-distinct sites (source, method, value). Today's ceilings at phis (the branch row)
-are not exported and are only counted.
+distinct sites. A site is one source expression: the source file plus the
+offsets of the expression's text, which the exporter writes on the ";@root"
+line. The SSA value number is not used, because each context has its own IR
+and the same number can name different expressions. A site that is classified
+differently in different nodes is counted as mixed and listed. Today's ceilings
+at phis (the branch row) are not exported and are only counted.
+
+Constants are printed as plain numbers: egglog's (from-string "5") is shown as 5.
 """
 import argparse
 import csv
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -37,6 +44,8 @@ from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+SPAN = re.compile(r'^(\d+-\d+|\?)$')
+BIGINT = re.compile(r'\((?:from-string|bigint) "?(-?\d+)"?\)')
 RUN = """
 (run-schedule (saturate (run match)))
 (print-function Intent :mode csv)
@@ -50,8 +59,12 @@ def parse_header(text):
     meta, roots, today, uncovered = {}, {}, {}, []
     for line in text.splitlines():
         if line.startswith(';@root '):
+            # ;@root v kind File.sol:line first-last   (older facts have no offsets)
             _, v, kind, pos = line.split(' ', 3)
-            roots[int(v)] = (kind, pos)
+            pos, sep, span = pos.rpartition(' ')
+            if not sep or not SPAN.match(span):
+                pos, span = (pos + sep + span).strip(), ''
+            roots[int(v)] = (kind, pos, span if span != '?' else '')
         elif line.startswith(';@today '):
             _, v, kind = line.split(' ', 2)
             today[int(v)] = kind
@@ -64,15 +77,25 @@ def parse_header(text):
     return meta, roots, today, uncovered
 
 
+def show(term):
+    """A printed term with its constants as plain numbers."""
+    return BIGINT.sub(r'\1', term)
+
+
 def parse_rows(stdout):
     rows = {'Intent': [], 'TodayUp': [], 'TodayExact': [], 'Agree': []}
-    for line in stdout.splitlines():
-        table, _, rest = line.partition(',')
-        if table in rows:
-            # terms contain no commas: table,v,col...,(full tuple)
-            fields = rest.split(',')
-            rows[table].append(fields[:-1])
+    # each line is table,v,col...,(full tuple); a term holding a string is quoted
+    for fields in csv.reader(stdout.splitlines()):
+        if fields and fields[0] in rows:
+            rows[fields[0]].append([show(x) for x in fields[1:-1]])
     return rows
+
+
+def site_key(meta, v, rootkind, pos, span):
+    """One source expression; without offsets (older facts), the value number in its method."""
+    if span:
+        return (meta.get('source'), pos.rsplit(':', 1)[0], span, rootkind)
+    return (meta.get('source'), meta.get('method'), v, rootkind)
 
 
 def classify(v, rows):
@@ -128,14 +151,19 @@ def main():
                 errors.append((f.name, (p.stderr or p.stdout).strip().splitlines()[-1:]))
                 continue
             rows = parse_rows(p.stdout)
-            for v, (rootkind, pos) in sorted(roots.items()):
+            for v, (rootkind, pos, span) in sorted(roots.items()):
                 kind, intents, today = classify(v, rows)
                 per_node[(rootkind, kind)] += 1
-                per_site[(meta.get('source'), meta.get('method'), v)] = (rootkind, kind)
+                site = per_site.setdefault(site_key(meta, v, rootkind, pos, span),
+                                           {'rootkind': rootkind, 'position': pos, 'kinds': set(), 'todayrows': set()})
+                site['kinds'].add(kind)
+                if today_kind.get(v):
+                    site['todayrows'].add(today_kind[v])
                 if len(intents) > 1:
                     multi.append((f.name, pos, intents))
                 out_rows.append({
-                    'file': f.name, 'source': meta.get('source'), 'method': meta.get('method'), 'position': pos, 'root': v,
+                    'file': f.name, 'source': meta.get('source'), 'method': meta.get('method'), 'position': pos,
+                    'span': span, 'root': v,
                     'rootkind': rootkind, 'kind': kind, 'todayrow': today_kind.get(v, ''),
                     'egglog': ' | '.join(f'n={r[1]} d={r[2]} c={r[3]}' for r in intents),
                     'today': ' | '.join(f'n={r[1]} d={r[2]} c={r[3]}' for r in today),
@@ -148,21 +176,26 @@ def main():
         print(f'egglog time: {total:.1f} s total, slowest {slowest[0]:.2f} s ({slowest[1]})')
     print(f'timeouts (> {args.timeout:g} s): {len(timeouts)}   errors: {len(errors)}')
     print()
-    site_counts = Counter(per_site.values())
+    site_counts = Counter((s['rootkind'], next(iter(s['kinds'])) if len(s['kinds']) == 1 else 'mixed')
+                          for s in per_site.values())
     rootkinds = ('div', 'add', 'mul')
     print(f'{"":<12}' + ''.join(f'{rk + " nodes":>11}{rk + " sites":>11}' for rk in rootkinds))
     for kind in ('same', 'differ', 'egglog-only', 'today-only', 'literal', 'exact'):
         print(f'{kind:<12}' + ''.join(f'{per_node[(rk, kind)]:>11}{site_counts[(rk, kind)]:>11}' for rk in rootkinds))
+    print(f'{"mixed":<12}' + ''.join(f'{"":>11}{site_counts[(rk, "mixed")]:>11}' for rk in rootkinds))
     print(f'{"total":<12}' + ''.join(
         f'{sum(v for (r, _), v in per_node.items() if r == rk):>11}{sum(v for (r, _), v in site_counts.items() if r == rk):>11}'
         for rk in rootkinds))
     print(f'\ntoday\'s branch-row ceilings (phis, not exported): {len(uncovered_sites)} distinct')
-    today_rows = Counter(r['todayrow'] for r in {(r['source'], r['method'], r['root']): r for r in out_rows}.values() if r['todayrow'])
+    today_rows = Counter(row for s in per_site.values() for row in s['todayrows'])
     print('today\'s ceilings at exported sites, by row: ' + ', '.join(f'{k} {v}' for k, v in sorted(today_rows.items())))
 
+    for s in per_site.values():
+        if len(s['kinds']) > 1:
+            print(f"\n[mixed] {s['position']} ({s['rootkind']} root): " + ', '.join(sorted(s['kinds'])))
     shown = set()
     for r in out_rows:
-        key = (r['method'], r['position'], r['root'], r['kind'])
+        key = (r['source'], r['position'], r['span'] or (r['method'], r['root']), r['rootkind'], r['kind'])
         if r['kind'] in ('differ', 'egglog-only', 'today-only') and key not in shown:
             shown.add(key)
             row = f", today's row: {r['todayrow']}" if r['todayrow'] else ''

@@ -8,6 +8,7 @@
 package com.certora.wala.analysis.rounding;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -45,7 +46,8 @@ import com.ibm.wala.util.collections.HashSetFactory;
  * {@code -DexportEgglog=<dir>} or the environment variable {@code EXPORT_EGGLOG=<dir>} is set; it
  * only writes files and never changes the analysis.
  *
- * <p>Terms follow {@code +}, {@code -}, {@code *}, {@code /} and {@code %}. A call the library
+ * <p>Terms follow {@code +}, {@code -}, {@code *}, {@code /} and {@code %}. An integer constant
+ * becomes {@code (Num c)} with its exact value, whatever its size. A call the library
  * model treats as {@code floor(a_1 * ... * a_k / d)} becomes a {@code Div}. A 0/1 value that
  * phase 1's literal analysis recognizes (a comparison with zero, a {@code c ? 1 : 0} select, a
  * call such as {@code SafeCast.toUint}) becomes {@code (Ind base c)}, 1 exactly when
@@ -138,7 +140,10 @@ final class EgglogExport {
 		return false;
 	}
 
-	/** {@code (Root v t)}, a {@code ;@root} line saying what and where it is, and today's decision. */
+	/**
+	 * {@code (Root v t)}, a {@code ;@root v kind File.sol:line first-last} line saying what and
+	 * where it is, and today's decision.
+	 */
 	private void addRoot(SSABinaryOpInstruction bin) {
 		int v = bin.getDef();
 		String t = term(v);
@@ -202,11 +207,12 @@ final class EgglogExport {
 	private String body(int vn) {
 		if (st.isConstant(vn)) {
 			Object c = st.getConstantValue(vn);
-			if (c instanceof Number num) {
-				BigInteger b = num instanceof BigInteger bi ? bi : BigInteger.valueOf(num.longValue());
-				return b.bitLength() < 64 ? "(Num " + b + ")" : "(BigNum \"" + b + "\")";
+			BigInteger b = c instanceof Number num ? integerValue(num) : null;
+			if (b == null) {
+				return "(Leaf " + vn + ")";
 			}
-			return "(Leaf " + vn + ")";
+			// egglog's (bigint n) takes a 64-bit literal; a larger constant is written as a decimal string
+			return b.bitLength() < 64 ? "(Num (bigint " + b + "))" : "(Num (from-string \"" + b + "\"))";
 		}
 		SSAInstruction def = du.getDef(vn);
 		if (def instanceof SSABinaryOpInstruction bin) {
@@ -238,6 +244,29 @@ final class EgglogExport {
 			return "(Field " + g.getRef() + " \"" + g.getDeclaredField().getName() + "\")";
 		}
 		return "(Leaf " + vn + ")";
+	}
+
+	/**
+	 * The exact value of an integer constant, or null if the constant is not an integer. The
+	 * frontend holds a literal in scientific notation, such as {@code 1e27}, as a
+	 * {@link BigDecimal}, whose {@code longValue()} keeps only the low 64 bits.
+	 */
+	private static BigInteger integerValue(Number num) {
+		if (num instanceof BigInteger bi) {
+			return bi;
+		}
+		if (num instanceof BigDecimal bd) {
+			try {
+				return bd.toBigIntegerExact();
+			} catch (ArithmeticException e) {
+				return null;
+			}
+		}
+		if (num instanceof Double || num instanceof Float) {
+			double d = num.doubleValue();
+			return d == Math.rint(d) && !Double.isInfinite(d) ? new BigDecimal(d).toBigIntegerExact() : null;
+		}
+		return BigInteger.valueOf(num.longValue());
 	}
 
 	private static String arithmetic(IBinaryOpInstruction.IOperator o) {
@@ -278,14 +307,20 @@ final class EgglogExport {
 		return "?";
 	}
 
+	/**
+	 * {@code File.sol:line first-last}: where the instruction is, and the offsets of its source text.
+	 * The offsets name the same source expression in every context the method is analyzed in; the
+	 * value number does not, because each context has its own IR.
+	 */
 	private String position(SSAInstruction inst) {
 		if (ir.getMethod() instanceof AstMethod m) {
 			Position p = m.debugInfo().getInstructionPosition(inst.iIndex());
 			if (p != null && p.getURL() != null) {
-				return Paths.get(p.getURL().getPath()).getFileName() + ":" + p.getFirstLine();
+				return Paths.get(p.getURL().getPath()).getFileName() + ":" + p.getFirstLine() + " "
+						+ p.getFirstOffset() + "-" + p.getLastOffset();
 			}
 		}
-		return "?";
+		return "? ?";
 	}
 
 	/** Readable and stable: the method name plus a hash of source, signature and context. */

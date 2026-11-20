@@ -1,9 +1,10 @@
 ; RoundAbout phase 1 intent rules, e-graph prototype.  egglog 3.0.0.
 ;
 ; Terms are the pure arithmetic of one method's SSA IR.  Leaf v is SSA value v
-; (a parameter, phi, load or call result); Num c is a constant, BigNum one that
-; does not fit in i64 (never folded); Field r m is member m of struct r, read
-; where nothing can write it, so every read of it is the same value.
+; (a parameter, phi, load or call result); Num c is an integer constant of any
+; size, written (Num (bigint 5)) or, beyond 64 bits, (Num (from-string "..."));
+; Field r m is member m of struct r, read where nothing can write it, so every
+; read of it is the same value.
 ;
 ; Div is the program's truncating division, so it is also the reading
 ; div(n, d, Down); DivUp n d is the reading div(n, d, Up).  Ind b c is a 0/1
@@ -23,8 +24,7 @@
 
 (datatype Term
   (Leaf i64)
-  (Num i64)
-  (BigNum String)
+  (Num BigInt)
   (Field i64 String)
   (Add Term Term)
   (Sub Term Term)
@@ -70,6 +70,7 @@
 (birewrite (Mul (Mul a b) c) (Mul a (Mul b c)) :ruleset match)
 
 ; Constant folding.  Folds constants already in the term; never splits one.
+; The constants are unbounded integers, so a sum cannot overflow.
 (rewrite (Add (Num a) (Num b)) (Num (+ a b)) :ruleset match)
 (rewrite (Sub (Sub x (Num a)) (Num b)) (Sub x (Num (+ a b))) :ruleset match)
 (rewrite (Add (Sub x (Num a)) (Num b)) (Sub x (Num (- a b))) :when ((>= a b)) :ruleset match)
@@ -82,7 +83,7 @@
 ; bias: (n + d - 1) / d  ->  div(n, d, Up)
 (rule ((Root v t)
        (= t (Div num d))
-       (= num (Sub (Add n d) (Num 1)))
+       (= num (Sub (Add n d) (Num (bigint 1))))
        (HasLeaf d))
       ((Intent v n d 0))
       :ruleset match)
@@ -99,7 +100,7 @@
 (rule ((Root v t)
        (= t (Mul m p))
        (= m (Ind n c))
-       (= p (Add (Div (Sub n (Num 1)) d) (Num 1))))
+       (= p (Add (Div (Sub n (Num (bigint 1))) d) (Num (bigint 1)))))
       ((Intent v n d c))
       :ruleset match)
 
