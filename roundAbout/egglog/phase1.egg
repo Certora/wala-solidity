@@ -1,0 +1,21 @@
+; Loaded after rules.egg when the Java analysis takes its bias, indicator and
+; masked rows from these rules (EgglogPhase1, switched on with
+; -DegglogPhase1=<egglog binary> or EGGLOG_PHASE1=<egglog binary>).
+;
+; An Intent row holds n and d as e-classes.  Java needs them as values of the
+; method, so it names every value it wrote and asks which names the classes
+; have.
+
+; Val a t: t is the term of SSA value a.  A negative a names the product of
+; the factors of the quotient call that defines value -a (a product the code
+; never computes as one value).
+(relation Val (i64 Term))
+
+; IntentVal v a b c: an Intent row of site v whose n is the value a and whose
+; d is the value b.  A class can hold several values, so one Intent row can
+; give several of these; Java takes the first that site v's own expression
+; reaches.
+(relation IntentVal (i64 i64 i64 i64))
+(rule ((Intent v n d c) (Val a n) (Val b d))
+      ((IntentVal v a b c))
+      :ruleset match)

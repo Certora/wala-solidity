@@ -16,7 +16,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +62,11 @@ import com.ibm.wala.util.collections.HashSetFactory;
  * <p>Roots: every division (the bias row), every addition and multiplication with an indicator
  * in its operands (the indicator and masked rows), and every value today's matcher reads as a
  * ceiling. Today's ceilings at phis (the branch row) are listed in {@code ;@uncovered} lines.
+ *
+ * <p>The same terms feed {@link EgglogPhase1}, which lets the rules decide the bias, indicator and
+ * masked rows in place of the Java matchers. For that use the facts are built before any ceiling
+ * is decided, so they hold no {@code TodayUp} rows, and they name every value for the rules with
+ * a {@code (Val id term)} fact.
  */
 final class EgglogExport {
 	static final String DIR = System.getProperty("exportEgglog", System.getenv("EXPORT_EGGLOG"));
@@ -76,7 +83,10 @@ final class EgglogExport {
 		}
 	}
 
+	/** Null when the facts are built for {@link EgglogPhase1}. */
 	private final CGNode node;
+	/** False for {@link EgglogPhase1}: the ceilings are not decided yet, so none is read or written. */
+	private final boolean withToday;
 	private final IR ir;
 	private final DefUse du;
 	private final SymbolTable st;
@@ -86,12 +96,21 @@ final class EgglogExport {
 	private final Map<Integer, Boolean> hasInd = HashMapFactory.make();
 	private final Set<Integer> inProgress = HashSetFactory.make();
 	private final Map<String, Integer> conditions = HashMapFactory.make();
+	private final Map<Integer, List<int[]>> deadByCondition = HashMapFactory.make();
+	/** The ids each value's term is built from, in the order the term names them. */
+	private final Map<Integer, List<Integer>> operands = HashMapFactory.make();
+	private final Deque<Integer> building = new ArrayDeque<>();
+	/** -(call value) -> the factors a_1, ..., a_k of a call modelled as floor(a_1 * ... * a_k / d). */
+	private final Map<Integer, int[]> products = HashMapFactory.make();
+	private final Set<Integer> indicators = HashSetFactory.make();
+	private final List<SSABinaryOpInstruction> rootInsts = new ArrayList<>();
 	private final StringBuilder lets = new StringBuilder();
 	private final StringBuilder roots = new StringBuilder();
 	private final StringBuilder notes = new StringBuilder();
 
 	private EgglogExport(CGNode node, RoundingRecognition recognition) {
 		this.node = node;
+		this.withToday = true;
 		this.ir = node.getIR();
 		this.du = node.getDU();
 		this.st = ir.getSymbolTable();
@@ -99,14 +118,88 @@ final class EgglogExport {
 		this.literals = recognition.literals();
 	}
 
-	private void write() throws IOException {
-		int count = 0;
+	/** For {@link EgglogPhase1}: {@code recognition} has decided no division and no ceiling yet. */
+	EgglogExport(IR ir, DefUse du, RoundingRecognition recognition) {
+		this.node = null;
+		this.withToday = false;
+		this.ir = ir;
+		this.du = du;
+		this.st = ir.getSymbolTable();
+		this.recognition = recognition;
+		this.literals = recognition.literals();
+	}
+
+	private int addRoots() {
 		for (SSAInstruction inst : ir.getInstructions()) {
 			if (inst instanceof SSABinaryOpInstruction bin && isRoot(bin)) {
 				addRoot(bin);
-				count++;
 			}
 		}
+		return rootInsts.size();
+	}
+
+	/**
+	 * The facts for {@link EgglogPhase1}: the terms, a {@code Root} per candidate, and a
+	 * {@code (Val id term)} per value; null if the method has no candidate.
+	 */
+	String phase1Facts() {
+		if (addRoots() == 0) {
+			return null;
+		}
+		StringBuilder vals = new StringBuilder();
+		names.keySet().stream().sorted().forEach(vn -> vals.append("(Val ").append(vn).append(' ').append(names.get(vn)).append(")\n"));
+		products.keySet().stream().sorted().forEach(id -> vals.append("(Val ").append(id).append(" $p").append(-id).append(")\n"));
+		return notes.toString() + lets + roots + vals;
+	}
+
+	/** The candidates {@link #phase1Facts} wrote a {@code Root} for. */
+	List<SSABinaryOpInstruction> rootInstructions() {
+		return rootInsts;
+	}
+
+	/**
+	 * The ids root {@code v}'s expression is built from, each once, in the order the expression
+	 * reaches them; an addition or multiplication is read through its indicator operand last.
+	 */
+	List<Integer> walk(int v) {
+		List<Integer> order = new ArrayList<>();
+		Set<Integer> seen = HashSetFactory.make();
+		Deque<Integer> stack = new ArrayDeque<>();
+		stack.push(v);
+		while (!stack.isEmpty()) {
+			int id = stack.pop();
+			if (!seen.add(id)) {
+				continue;
+			}
+			order.add(id);
+			List<Integer> ops = new ArrayList<>(operands.getOrDefault(id, List.of()));
+			if (id == v) {
+				ops.sort((a, b) -> Boolean.compare(indicators.contains(a), indicators.contains(b)));
+			}
+			for (int i = ops.size() - 1; i >= 0; i--) {
+				stack.push(ops.get(i));
+			}
+		}
+		return order;
+	}
+
+	/** The operands of {@code id}'s term, in the order the term names them. */
+	List<Integer> operandsOf(int id) {
+		return operands.getOrDefault(id, List.of());
+	}
+
+	/** The factors behind a negative id of {@link #walk}; null for a value number. */
+	int[] productFactors(int id) {
+		return products.get(id);
+	}
+
+	/** The phi operands, as {phi def, operand index}, that condition {@code c} needs infeasible. */
+	List<int[]> dead(int c) {
+		return c == 0 ? List.of() : deadByCondition.get(c);
+	}
+
+	private void write() throws IOException {
+		int count = addRoots();
 		for (ISSABasicBlock bb : ir.getControlFlowGraph()) {
 			for (Iterator<SSAPhiInstruction> phis = bb.iteratePhis(); phis.hasNext();) {
 				SSAPhiInstruction phi = phis.next();
@@ -135,7 +228,7 @@ final class EgglogExport {
 			return true;
 		}
 		if (o == IBinaryOpInstruction.Operator.ADD || o == IBinaryOpInstruction.Operator.MUL) {
-			return recognition.ceiling(bin.getDef()) != null || hasInd(bin.getUse(0)) || hasInd(bin.getUse(1));
+			return (withToday && recognition.ceiling(bin.getDef()) != null) || hasInd(bin.getUse(0)) || hasInd(bin.getUse(1));
 		}
 		return false;
 	}
@@ -150,6 +243,10 @@ final class EgglogExport {
 		String kind = bin.getOperator().toString().toLowerCase();
 		roots.append(";@root ").append(v).append(' ').append(kind).append(' ').append(position(bin)).append('\n');
 		roots.append("(Root ").append(v).append(' ').append(t).append(")\n");
+		rootInsts.add(bin);
+		if (!withToday) {
+			return;
+		}
 		RoundingRecognition.Ceiling c = recognition.ceiling(v);
 		if (c != null) {
 			roots.append(";@today ").append(v).append(' ').append(c.kind).append('\n');
@@ -185,6 +282,7 @@ final class EgglogExport {
 		if (id == null) {
 			id = conditions.size() + 1;
 			conditions.put(key, id);
+			deadByCondition.put(id, List.copyOf(dead));
 			notes.append(";@cond ").append(id).append(' ').append(key).append('\n');
 		}
 		return id;
@@ -192,11 +290,16 @@ final class EgglogExport {
 
 	/** The {@code let} name of {@code vn}'s term, writing the term (operands first) the first time. */
 	private String term(int vn) {
+		if (!building.isEmpty()) {
+			operands.computeIfAbsent(building.peek(), k -> new ArrayList<>()).add(vn);
+		}
 		String name = names.get(vn);
 		if (name != null) {
 			return name;
 		}
+		building.push(vn);
 		String body = inProgress.add(vn) ? body(vn) : "(Leaf " + vn + ")"; // a cycle through phis
+		building.pop();
 		inProgress.remove(vn);
 		name = "$v" + vn;
 		names.put(vn, name);
@@ -231,11 +334,23 @@ final class EgglogExport {
 			for (int i = n - 3; i >= 1; i--) {
 				num = "(Mul " + term(call.getUse(i)) + " " + num + ")";
 			}
+			if (n > 3) {
+				// the product has no value number of its own: name it, as -(the call's value)
+				int[] factors = new int[n - 2];
+				for (int i = 1; i < n - 1; i++) {
+					factors[i - 1] = call.getUse(i);
+				}
+				products.put(-vn, factors);
+				operands.computeIfAbsent(vn, k -> new ArrayList<>()).add(-vn);
+				lets.append("(let $p").append(vn).append(' ').append(num).append(")\n");
+				num = "$p" + vn;
+			}
 			return "(Div " + num + " " + term(call.getUse(n - 1)) + ")";
 		}
 		RoundingRecognition.Literal lit = literals.apply(vn);
 		if (lit.indicator && lit.base != vn) {
 			String base = term(lit.base);
+			indicators.add(vn);
 			return "(" + (lit.positive ? "Ind" : "IndZero") + " " + base + " " + condition(lit.dead) + ")";
 		}
 		if (def instanceof SSAGetInstruction g && !g.isStatic()

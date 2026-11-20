@@ -107,9 +107,19 @@ public class RoundingRecognition {
 	 */
 	static final boolean DISABLE_INTENT = Boolean.getBoolean("disableIntent");
 
+	/**
+	 * E-graph prototype ({@link EgglogPhase1}, off by default): what the egglog rules read each
+	 * division, sum and product as. When this is not null, the rules decide the bias, indicator
+	 * and masked rows, and {@link #biasNumerator}, {@link #indicatorCeiling} and
+	 * {@link #maskedPredecrementCeiling} are not consulted.
+	 */
+	private final Map<Integer, EgglogPhase1.Found> fromRules;
+
 	public RoundingRecognition(IR ir, Calls calls) {
 		this.dug = new DefUseGraph(ir);
 		this.calls = calls;
+		// the rules need only the literals and the call model, which are ready at this point
+		this.fromRules = EgglogPhase1.on() && !DISABLE_INTENT ? EgglogPhase1.run(ir, dug.du(), this) : null;
 		classifyDivisions(ir);
 		if (!DISABLE_INTENT) {
 			recognizeCeilings(ir);
@@ -136,8 +146,12 @@ public class RoundingRecognition {
 						divDir.put(bin.iIndex(), Direction.Neither); // x / 1 == x: exact for every dividend
 						return;
 					}
-					int a = DISABLE_INTENT ? -1 : biasNumerator(bin);
-					if (a > 0) {
+					Ceiling fromRule = ruleCeiling("bias", bin.getDef());
+					int a = DISABLE_INTENT || fromRules != null ? -1 : biasNumerator(bin);
+					if (fromRule != null) {
+						divDir.put(bin.iIndex(), Direction.Up);
+						ceilings.put(bin.getDef(), fromRule);
+					} else if (a > 0) {
 						divDir.put(bin.iIndex(), Direction.Up);
 						ceilings.put(bin.getDef(), new Ceiling("bias", factors(a), bin.getUse(1), Collections.emptyList()));
 					} else {
@@ -284,6 +298,26 @@ public class RoundingRecognition {
 		}
 	}
 
+	/** The ceiling the egglog rules read the definition of {@code vn} as, or null ({@link #fromRules}). */
+	private Ceiling ruleCeiling(String kind, int vn) {
+		EgglogPhase1.Found f = fromRules == null ? null : fromRules.get(vn);
+		if (f == null) {
+			return null;
+		}
+		int[] numerator;
+		if (f.productFactors == null) {
+			numerator = factors(f.numerator);
+		} else {
+			// as quotient() reads a call modelled as floor(a_1 * ... * a_k / d)
+			IntStream all = IntStream.empty();
+			for (int a : f.productFactors) {
+				all = IntStream.concat(all, IntStream.of(factors(a)));
+			}
+			numerator = all.toArray();
+		}
+		return new Ceiling(kind, numerator, f.divisorVN, f.dead);
+	}
+
 	/** The ceiling that the definition of {@code vn} (a phi, add or mul) computes, or null. */
 	public Ceiling ceiling(int vn) {
 		return ceilings.get(vn);
@@ -330,12 +364,12 @@ public class RoundingRecognition {
 				SSABinaryOpInstruction b = (SSABinaryOpInstruction) inst;
 				Ceiling c = null;
 				if (b.getOperator() == IBinaryOpInstruction.Operator.ADD) {
-					c = indicatorCeiling(b, literals);
+					c = fromRules != null ? ruleCeiling("indicator", b.getDef()) : indicatorCeiling(b, literals);
 					if (c == null) {
 						c = guardedPredecrementCeiling(b, ir, cfg, dom, literals);
 					}
 				} else if (b.getOperator() == IBinaryOpInstruction.Operator.MUL) {
-					c = maskedPredecrementCeiling(b, literals);
+					c = fromRules != null ? ruleCeiling("masked", b.getDef()) : maskedPredecrementCeiling(b, literals);
 				}
 				if (c != null) {
 					ceilings.put(b.getDef(), c);
