@@ -7,10 +7,10 @@ Each facts file holds one call-graph node: a (let ...) per SSA value, a (Root v 
 per candidate site (every division, and every + or * with an indicator among its
 operands or a ceiling today), and TodayUp / TodayExact for what phase 1 decides
 today. The script joins rules.egg, compare.egg and the facts into one program,
-runs the match phase of rules.egg until nothing changes (or the timeout), and
-classifies each site. The Intent rows are complete after that phase, so the
-optional readings phase (the union of each DivUp term into its site's class)
-is not run. The classes are:
+runs the written and match phases of rules.egg until nothing changes (or the
+timeout), and classifies each site. The Intent rows are complete after those
+phases, so the optional readings phase (the union of each DivUp term into its
+site's class) is not run. The classes are:
 
   same        egglog and today both read it as div(n, d, Up), with equal n, d and condition
   differ      both find a round-up reading, but with different n, d or condition
@@ -47,7 +47,7 @@ HERE = Path(__file__).resolve().parent
 SPAN = re.compile(r'^(\d+-\d+|\?)$')
 BIGINT = re.compile(r'\((?:from-string|bigint) "?(-?\d+)"?\)')
 RUN = """
-(run-schedule (saturate (run match)))
+(run-schedule (saturate (run written)) (saturate (run match)))
 (print-function Intent :mode csv)
 (print-function TodayUp :mode csv)
 (print-function TodayExact :mode csv)

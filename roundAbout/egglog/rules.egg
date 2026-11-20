@@ -13,14 +13,16 @@
 ; operands listed in the facts file's ";@cond c" line are infeasible (the flag
 ; form: which calling contexts make that true is decided in Java).
 ;
-; Run the match phase:
-;   (run-schedule (saturate (run match)))
+; Run two phases:
+;   (run-schedule (saturate (run written)) (saturate (run match)))
+; written:  records which values the code itself computes for each site
+;           (Part), before any rule adds a term the code did not write;
 ; match:    merge rules, and the idiom rules, which record Intent rows.
-; The Intent rows are the result.  An optional second phase,
+; The Intent rows are the result.  An optional last phase,
 ;   (saturate (run readings))
 ; also merges each unconditional reading into its site's e-class.  Nothing
 ; reads the merged classes yet, so run_facts.py stops after match; cases.egg
-; runs both phases to check the second one.
+; runs all three phases to check the last one.
 
 (datatype Term
   (Leaf i64)
@@ -35,6 +37,7 @@
   (IndZero Term i64)
   (DivUp Term Term))
 
+(ruleset written)
 (ruleset match)
 (ruleset readings)
 
@@ -57,6 +60,37 @@
 (rule ((= e (Sub a b)) (HasLeaf a)) ((HasLeaf e)) :ruleset match)
 (rule ((= e (Mul a b)) (HasLeaf a)) ((HasLeaf e)) :ruleset match)
 (rule ((= e (Mul a b)) (HasLeaf b)) ((HasLeaf e)) :ruleset match)
+
+; ---------------------------------------------------------------------------
+; Which n may go into Q.  Q must be defined wherever the code is (behavior
+; preservation), so computing n must not revert on an input where the code
+; reaches the site.  A subtraction, a division or a remainder can revert; the
+; ones the code itself computes on the way to the site have not, whenever the
+; site is reached.
+;
+; Part v e: e is the value of a subterm of site v's expression as the code
+; writes it.  Filled in by the phase "written", which runs before the merge
+; rules, while every term in the graph is one the code wrote.
+(relation Part (i64 Term))
+(rule ((Root v t)) ((Part v t)) :ruleset written)
+(rule ((Part v e) (= e (Add a b))) ((Part v a) (Part v b)) :ruleset written)
+(rule ((Part v e) (= e (Sub a b))) ((Part v a) (Part v b)) :ruleset written)
+(rule ((Part v e) (= e (Mul a b))) ((Part v a) (Part v b)) :ruleset written)
+(rule ((Part v e) (= e (Div a b))) ((Part v a) (Part v b)) :ruleset written)
+(rule ((Part v e) (= e (Rem a b))) ((Part v a) (Part v b)) :ruleset written)
+(rule ((Part v e) (= e (Ind b c))) ((Part v b)) :ruleset written)
+(rule ((Part v e) (= e (IndZero b c))) ((Part v b)) :ruleset written)
+
+; Safe v e: e is such a value, or a sum or product of such values and
+; constants (overflow is not modelled).  Every idiom rule asks this of n.
+; Without it, (x + d - 1 - y) / d would read as a round-up of (x - y) / d, and
+; x - y reverts at x = 0, y = 1, d = 5, where the code computes 0.
+(relation Safe (i64 Term))
+(rule ((Part v e)) ((Safe v e)) :ruleset match)
+(rule ((Safe v a) (Safe v b) (= e (Add a b))) ((Safe v e)) :ruleset match)
+(rule ((Safe v a) (Safe v b) (= e (Mul a b))) ((Safe v e)) :ruleset match)
+(rule ((Safe v a) (= e (Add a (Num c)))) ((Safe v e)) :ruleset match)
+(rule ((Safe v a) (= e (Mul a (Num c)))) ((Safe v e)) :ruleset match)
 
 ; ---------------------------------------------------------------------------
 ; Merge rules: the integer and the real value agree on both sides (where
@@ -84,7 +118,7 @@
 (rule ((Root v t)
        (= t (Div num d))
        (= num (Sub (Add n d) (Num (bigint 1))))
-       (HasLeaf d))
+       (HasLeaf d) (Safe v n))
       ((Intent v n d 0))
       :ruleset match)
 
@@ -92,7 +126,8 @@
 (rule ((Root v t)
        (= t (Add q i))
        (= q (Div n d))
-       (= i (Ind (Rem n d) c)))
+       (= i (Ind (Rem n d) c))
+       (Safe v n))
       ((Intent v n d c))
       :ruleset match)
 
@@ -100,7 +135,8 @@
 (rule ((Root v t)
        (= t (Mul m p))
        (= m (Ind n c))
-       (= p (Add (Div (Sub n (Num (bigint 1))) d) (Num (bigint 1)))))
+       (= p (Add (Div (Sub n (Num (bigint 1))) d) (Num (bigint 1))))
+       (Safe v n))
       ((Intent v n d c))
       :ruleset match)
 
@@ -138,7 +174,7 @@
        (= t (Div num d))
        (= d (Add base (Num (bigint 1))))
        (= num (Add n base))
-       (HasLeaf d) (NoConst n))
+       (HasLeaf d) (NoConst n) (Safe v n))
       ((Intent v n d 0))
       :ruleset match)
 
@@ -148,7 +184,7 @@
        (= d (Add base (Num k)))
        (= num (Add (Add n base) (Num j)))
        (= j (- k (bigint 1))) (> k (bigint 1))
-       (HasLeaf d) (NoConst n))
+       (HasLeaf d) (NoConst n) (Safe v n))
       ((Intent v n d 0))
       :ruleset match)
 
@@ -158,7 +194,7 @@
        (= d (Sub base (Num k)))
        (= num (Sub (Add n base) (Num j)))
        (= j (+ k (bigint 1)))
-       (HasLeaf d) (NoConst n))
+       (HasLeaf d) (NoConst n) (Safe v n))
       ((Intent v n d 0))
       :ruleset match)
 

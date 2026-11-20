@@ -1,9 +1,9 @@
 ; Hand-written checks for rules.egg (egglog 3.0.0).
 ; Run from this directory, since egglog resolves include from the current directory:
 ;   cd roundAbout/egglog && egglog cases.egg
-; Expected: every check passes, and 35 Intent rows, for cases 1-6, 10-12,
-; 14-17, 19, 21-29, 31, 32, 36-40 and 42-46 (19 with condition 3, the rest
-; with 0).
+; Expected: every check passes, and 33 Intent rows, for cases 1-6, 10-12,
+; 14-17, 19, 21, 22, 25-29, 31, 32, 36-40 and 42-46 (19 with condition 3, the
+; rest with 0).
 
 (include "rules.egg")
 
@@ -31,6 +31,7 @@
 ; 10 (N + D - 2 + 1) / D                  Intent, n = N (today matches: constants are summed)
 (Root 10 (Div (Add (Sub (Add (Leaf 101) (Leaf 102)) (Num (bigint 2))) (Num (bigint 1))) (Leaf 102)))
 ; 11 (y - x + D - 1) / D                  Intent, n = y - x   (today no match: negative term)
+;    The code computes y - x itself, so n cannot revert where the code does not.
 (Root 11 (Div (Sub (Add (Sub (Leaf 111) (Leaf 113)) (Leaf 112)) (Num (bigint 1))) (Leaf 112)))
 ; 12 (a*b + c - 1) / c                    Intent, n = a*b
 (Root 12 (Div (Sub (Add (Mul (Leaf 121) (Leaf 122)) (Leaf 123)) (Num (bigint 1))) (Leaf 123)))
@@ -67,10 +68,12 @@
 ; Expressions where these rules and today's Java matcher were run side by side
 ; (2026-11-19, through EgglogExport and run_facts.py).  "Java:" is what the Java
 ; matcher decided for the same expression.
-; 23 (x + d - 1 - y) / d                  Intent, n = x - y   (Java: no match)
-;    n reverts where the code does not, for example x = 0, y = 1, d = 5.
+; 23 (x + d - 1 - y) / d                  no Intent   (Java: no match)
+;    n would be x - y, which the code never computes: it reverts where the code
+;    does not, for example x = 0, y = 1, d = 5 (rules.egg, Safe).
 (Root 23 (Div (Sub (Sub (Add (Leaf 231) (Leaf 232)) (Num (bigint 1))) (Leaf 233)) (Leaf 232)))
-; 24 (x + (d - y) - 1 + y) / d            Intent, n = y + (x - y)   (Java: no match)
+; 24 (x + (d - y) - 1 + y) / d            no Intent   (Java: no match)
+;    n would be y + (x - y); the code computes d - y, not x - y.
 (Root 24 (Div (Add (Sub (Add (Leaf 241) (Sub (Leaf 242) (Leaf 243))) (Num (bigint 1))) (Leaf 243)) (Leaf 242)))
 ; 25 (x + d) / (d + 1)                    Intent, n = x   (Java: the same)
 ;    The - 1 is not written: (d + 1) - 1 is already folded to d.  Matched by
@@ -130,12 +133,13 @@
 (let $d45 (Add (Add (Leaf 452) (Num (from-string "1000000000000000000000000000"))) (Num (bigint 1))))
 (Root 45 (Div (Add (Add (Leaf 451) (Num (from-string "1000000000000000000000000000"))) (Leaf 452)) $d45))
 ; 46 (x - y + d) / (d + 1)                Intent, n = x - y   (Java: no match, a subtracted term in n)
+;    As in case 11, the code computes x - y itself.
 (Root 46 (Div (Add (Sub (Leaf 461) (Leaf 463)) (Leaf 462)) (Add (Leaf 462) (Num (bigint 1)))))
 
-; Both phases.  The readings phase is optional (run_facts.py stops after match,
-; and the Intent rows below are the same without it); it runs here so that the
-; first three checks cover it.
-(run-schedule (saturate (run match)) (saturate (run readings)))
+; All three phases.  The readings phase is optional (run_facts.py stops after
+; match, and the Intent rows below are the same without it); it runs here so
+; that the first three checks cover it.
+(run-schedule (saturate (run written)) (saturate (run match)) (saturate (run readings)))
 
 ; The unconditional reading joined the site's class; the conditional one did not.
 (check (= $t14 (DivUp (Leaf 141) (Leaf 142))))
@@ -144,8 +148,8 @@
 (check (= $t21 $t22))
 
 ; Cases 23-30.
-(check (Intent 23 (Sub (Leaf 231) (Leaf 233)) (Leaf 232) 0))
-(check (Intent 24 (Add (Leaf 243) (Sub (Leaf 241) (Leaf 243))) (Leaf 242) 0))
+(fail (check (Intent 23 n d c)))
+(fail (check (Intent 24 n d c)))
 (check (Intent 25 (Leaf 251) (Add (Leaf 252) (Num (bigint 1))) 0))
 (check (Intent 26 (Leaf 261) (Add (Leaf 262) (Num (bigint 5))) 0))
 (check (Intent 27 (Add (Leaf 271) (Num (bigint 5))) (Leaf 272) 0))
