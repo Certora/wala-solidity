@@ -1,0 +1,40 @@
+; Hand-written checks for rules.egg (egglog 3.0.0).
+; Run from this directory, since egglog resolves include from the current directory:
+;   cd roundAbout/egglog && egglog cases.egg
+; Expected: 9 Intent rows, for cases 1-6 and 10-12.
+
+(include "rules.egg")
+
+; Each case uses its own leaves; the root number is the case number.
+; Expected result in the comment.
+
+; 1  (N + D - 1) / D                      Intent, n = N
+(Root 1 (Div (Sub (Add (Leaf 11) (Leaf 12)) (Num 1)) (Leaf 12)))
+; 2  (D + N - 1) / D                      Intent, n = N
+(Root 2 (Div (Sub (Add (Leaf 22) (Leaf 21)) (Num 1)) (Leaf 22)))
+; 3  (N - 1 + D) / D                      Intent, n = N
+(Root 3 (Div (Add (Sub (Leaf 31) (Num 1)) (Leaf 32)) (Leaf 32)))
+; 4  (N + (D - 1)) / D                    Intent, n = N
+(Root 4 (Div (Add (Leaf 41) (Sub (Leaf 42) (Num 1))) (Leaf 42)))
+; 5  (x + D - 1 + y) / D                  Intent, n = x + y   (gap 1: today no match)
+(Root 5 (Div (Add (Sub (Add (Leaf 51) (Leaf 52)) (Num 1)) (Leaf 53)) (Leaf 52)))
+; 6  (N + a*b - 1) / (b*a)                Intent, n = N       (gap 2: today no match)
+(Root 6 (Div (Sub (Add (Leaf 61) (Mul (Leaf 62) (Leaf 63))) (Num 1)) (Mul (Leaf 63) (Leaf 62))))
+; 7  (a + b) / b                          no Intent
+(Root 7 (Div (Add (Leaf 71) (Leaf 72)) (Leaf 72)))
+; 8  (x + 10 - 1) / 10                    no Intent (constant divisor, as today)
+(Root 8 (Div (Sub (Add (Leaf 81) (Num 10)) (Num 1)) (Num 10)))
+; 9  (D - 1) / D                          no Intent (nothing left for n)
+(Root 9 (Div (Sub (Leaf 92) (Num 1)) (Leaf 92)))
+; 10 (N + D - 2 + 1) / D                  Intent, n = N (today matches: constants are summed)
+(Root 10 (Div (Add (Sub (Add (Leaf 101) (Leaf 102)) (Num 2)) (Num 1)) (Leaf 102)))
+; 11 (y - x + D - 1) / D                  Intent, n = y - x   (today no match: negative term)
+(Root 11 (Div (Sub (Add (Sub (Leaf 111) (Leaf 113)) (Leaf 112)) (Num 1)) (Leaf 112)))
+; 12 (a*b + c - 1) / c                    Intent, n = a*b
+(Root 12 (Div (Sub (Add (Mul (Leaf 121) (Leaf 122)) (Leaf 123)) (Num 1)) (Leaf 123)))
+; 13 (x + 9) / 10                         no Intent (constant divisor; no splitting)
+(Root 13 (Div (Add (Leaf 131) (Num 9)) (Num 10)))
+
+(run 10)
+(print-size)
+(print-function Intent :mode csv)

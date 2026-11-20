@@ -1,0 +1,57 @@
+; RoundAbout phase 1 intent rules, step 0 prototype.  egglog 3.0.0.
+;
+; Terms are the pure arithmetic of one method's SSA IR.  Leaf v is SSA value v
+; (a parameter, phi, load or call result); Num c is a constant.
+
+(datatype Term
+  (Leaf i64)
+  (Num i64)
+  (Add Term Term)
+  (Sub Term Term)
+  (Mul Term Term)
+  (Div Term Term))
+
+; Root v t: SSA value v is defined by term t.  Written by the exporter.
+(relation Root (i64 Term))
+
+; Intent v n d: value v has the reading div(n, d, Up).  The literal reading,
+; div(numerator, d, Down), is always there and is not stored.
+(relation Intent (i64 Term Term))
+
+; HasLeaf e: e mentions an SSA value, so it is not a constant.  Today's matcher
+; never takes a constant divisor as a bias (RoundingRecognition.biasNumerator).
+(relation HasLeaf (Term))
+(rule ((= e (Leaf v))) ((HasLeaf e)))
+(rule ((= e (Add a b)) (HasLeaf a)) ((HasLeaf e)))
+(rule ((= e (Add a b)) (HasLeaf b)) ((HasLeaf e)))
+(rule ((= e (Sub a b)) (HasLeaf a)) ((HasLeaf e)))
+(rule ((= e (Mul a b)) (HasLeaf a)) ((HasLeaf e)))
+(rule ((= e (Mul a b)) (HasLeaf b)) ((HasLeaf e)))
+
+; ---------------------------------------------------------------------------
+; Merge rules: the integer and the real value agree on both sides (where
+; neither side reverts), so the terms share an e-class.  Matching only:
+; a reordered spelling is never extracted into Q.
+
+(rewrite (Add a b) (Add b a))
+(birewrite (Add (Add a b) c) (Add a (Add b c)))
+(birewrite (Add (Sub a b) c) (Sub (Add a c) b))
+(rewrite (Mul a b) (Mul b a))
+(birewrite (Mul (Mul a b) c) (Mul a (Mul b c)))
+
+; Constant folding.  Folds constants already in the term; never splits one.
+(rewrite (Add (Num a) (Num b)) (Num (+ a b)))
+(rewrite (Sub (Sub x (Num a)) (Num b)) (Sub x (Num (+ a b))))
+(rewrite (Add (Sub x (Num a)) (Num b)) (Sub x (Num (- a b))) :when ((>= a b)))
+(rewrite (Add (Sub x (Num a)) (Num b)) (Add x (Num (- b a))) :when ((< a b)))
+
+; ---------------------------------------------------------------------------
+; Intent rules: the integer value agrees, the real value does not, so they
+; record a link instead of merging.
+
+; bias: (n + d - 1) / d  ->  div(n, d, Up)
+(rule ((Root v t)
+       (= t (Div num d))
+       (= num (Sub (Add n d) (Num 1)))
+       (HasLeaf d))
+      ((Intent v n d)))
