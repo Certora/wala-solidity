@@ -105,6 +105,64 @@
       :ruleset match)
 
 ; ---------------------------------------------------------------------------
+; Bias with a constant in the divisor.  When the divisor is base + k, the
+; dividend n + (base + k) - 1 is normally written with its constants already
+; added up, n + base + (k - 1), and no "- 1" is left for the bias rule above:
+; (x + d) / (d + 1) is a round-up of x / (d + 1).  These rules compare the two
+; constants instead.
+;
+; n must have a form with no constant added or subtracted (NoConst).  Without
+; that, (x + d + 1) / (d + 1) would read as a round-up of (x + 1) / (d + 1);
+; the Java matcher reads it as a plain division, because it adds up all the
+; constants of the dividend and of the divisor and asks that they differ by 1.
+;
+; The rules only record Intent rows.  The other way, putting D - 1 into the
+; graph and letting constant folding find the bias shape, does not terminate:
+; once d = (d - 1) + 1 is known, the regrouping rule derives d - 2, d - 3, ...
+; (tried 2026-11-19 with a rule x - 0 = x added: 9, 22 and 56 distinct
+; constants after 10, 12 and 14 rounds, no end within 60 s).
+
+(relation NoConst (Term))
+(rule ((= e (Leaf v))) ((NoConst e)) :ruleset match)
+(rule ((= e (Field r m))) ((NoConst e)) :ruleset match)
+(rule ((= e (Mul a b))) ((NoConst e)) :ruleset match)
+(rule ((= e (Div a b))) ((NoConst e)) :ruleset match)
+(rule ((= e (Rem a b))) ((NoConst e)) :ruleset match)
+(rule ((= e (Ind b c))) ((NoConst e)) :ruleset match)
+(rule ((= e (IndZero b c))) ((NoConst e)) :ruleset match)
+(rule ((= e (Add a b)) (NoConst a) (NoConst b)) ((NoConst e)) :ruleset match)
+(rule ((= e (Sub a b)) (NoConst a) (NoConst b)) ((NoConst e)) :ruleset match)
+
+; k = 1:  (n + base) / (base + 1)
+(rule ((Root v t)
+       (= t (Div num d))
+       (= d (Add base (Num (bigint 1))))
+       (= num (Add n base))
+       (HasLeaf d) (NoConst n))
+      ((Intent v n d 0))
+      :ruleset match)
+
+; k > 1:  (n + base + j) / (base + k)  with  j = k - 1
+(rule ((Root v t)
+       (= t (Div num d))
+       (= d (Add base (Num k)))
+       (= num (Add (Add n base) (Num j)))
+       (= j (- k (bigint 1))) (> k (bigint 1))
+       (HasLeaf d) (NoConst n))
+      ((Intent v n d 0))
+      :ruleset match)
+
+; divisor base - k:  (n + base - j) / (base - k)  with  j = k + 1
+(rule ((Root v t)
+       (= t (Div num d))
+       (= d (Sub base (Num k)))
+       (= num (Sub (Add n base) (Num j)))
+       (= j (+ k (bigint 1)))
+       (HasLeaf d) (NoConst n))
+      ((Intent v n d 0))
+      :ruleset match)
+
+; ---------------------------------------------------------------------------
 ; Readings (optional phase, not run by run_facts.py): an unconditional reading
 ; is equal to the site over the integers (behavior preservation), so it joins
 ; the site's e-class.  A conditional one (c > 0) holds only in some calling

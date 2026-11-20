@@ -1,8 +1,9 @@
 ; Hand-written checks for rules.egg (egglog 3.0.0).
 ; Run from this directory, since egglog resolves include from the current directory:
 ;   cd roundAbout/egglog && egglog cases.egg
-; Expected: every check passes, and 21 Intent rows, for cases 1-6, 10-12,
-; 14-17, 19, 21-24 and 27-29 (19 with condition 3, the rest with 0).
+; Expected: every check passes, and 35 Intent rows, for cases 1-6, 10-12,
+; 14-17, 19, 21-29, 31, 32, 36-40 and 42-46 (19 with condition 3, the rest
+; with 0).
 
 (include "rules.egg")
 
@@ -71,10 +72,11 @@
 (Root 23 (Div (Sub (Sub (Add (Leaf 231) (Leaf 232)) (Num (bigint 1))) (Leaf 233)) (Leaf 232)))
 ; 24 (x + (d - y) - 1 + y) / d            Intent, n = y + (x - y)   (Java: no match)
 (Root 24 (Div (Add (Sub (Add (Leaf 241) (Sub (Leaf 242) (Leaf 243))) (Num (bigint 1))) (Leaf 243)) (Leaf 242)))
-; 25 (x + d) / (d + 1)                    no Intent   (Java: round-up of x / (d + 1))
-;    The - 1 is not written: (d + 1) - 1 is already folded to d.
+; 25 (x + d) / (d + 1)                    Intent, n = x   (Java: the same)
+;    The - 1 is not written: (d + 1) - 1 is already folded to d.  Matched by
+;    the rules for a constant in the divisor.
 (Root 25 (Div (Add (Leaf 251) (Leaf 252)) (Add (Leaf 252) (Num (bigint 1)))))
-; 26 (x + d + 4) / (d + 5)                no Intent   (Java: round-up of x / (d + 5))
+; 26 (x + d + 4) / (d + 5)                Intent, n = x   (Java: the same)
 (Root 26 (Div (Add (Add (Leaf 261) (Leaf 262)) (Num (bigint 4))) (Add (Leaf 262) (Num (bigint 5)))))
 ; 27 (x + 5 + d - 1) / d                  Intent, n = x + 5   (Java: no match, a constant in n)
 (Root 27 (Div (Sub (Add (Add (Leaf 271) (Num (bigint 5))) (Leaf 272)) (Num (bigint 1))) (Leaf 272)))
@@ -92,6 +94,44 @@
 (Root 30 (Div (Sub (Add (Add (Leaf 301) (Leaf 302)) (Num (from-string "20000000000000000000")))
                    (Num (bigint 1553255926290448385))) (Leaf 302)))
 
+; A constant in the divisor (see also 25 and 26).  x, y, d, a are leaves.
+; 31 (x + (d + 1) - 1) / (d + 1)          Intent, n = x   (Java: the same)
+(Root 31 (Div (Sub (Add (Leaf 311) (Add (Leaf 312) (Num (bigint 1)))) (Num (bigint 1))) (Add (Leaf 312) (Num (bigint 1)))))
+; 32 (x + d - 4) / (d - 3)                Intent, n = x   (Java: the same)
+(Root 32 (Div (Sub (Add (Leaf 321) (Leaf 322)) (Num (bigint 4))) (Sub (Leaf 322) (Num (bigint 3)))))
+; 33 (x + d + 1) / (d + 1)                no Intent   (Java: no match; n would be x + 1)
+(Root 33 (Div (Add (Add (Leaf 331) (Leaf 332)) (Num (bigint 1))) (Add (Leaf 332) (Num (bigint 1)))))
+; 34 (x + d) / (d + 2)                    no Intent   (Java: no match)
+(Root 34 (Div (Add (Leaf 341) (Leaf 342)) (Add (Leaf 342) (Num (bigint 2)))))
+; 35 d / (d + 1)                          no Intent   (Java: no match; nothing left for n)
+(Root 35 (Div (Leaf 352) (Add (Leaf 352) (Num (bigint 1)))))
+; 36 (x + y + d) / (1 + d)                Intent, n = x + y   (Java: the same)
+(Root 36 (Div (Add (Add (Leaf 361) (Leaf 363)) (Leaf 362)) (Add (Num (bigint 1)) (Leaf 362))))
+; 37 (x + 1 + d) / (d + 2)                Intent, n = x   (Java: the same)
+(Root 37 (Div (Add (Add (Leaf 371) (Num (bigint 1))) (Leaf 372)) (Add (Leaf 372) (Num (bigint 2)))))
+; 38 (2 * (x + 1) + d) / (d + 1)          Intent, n = 2 * (x + 1)   (Java: the same)
+(let $n38 (Mul (Num (bigint 2)) (Add (Leaf 381) (Num (bigint 1)))))
+(Root 38 (Div (Add $n38 (Leaf 382)) (Add (Leaf 382) (Num (bigint 1)))))
+; 39 (x + d - 2) / (d - 1)                Intent, n = x   (Java: the same)
+(Root 39 (Div (Sub (Add (Leaf 391) (Leaf 392)) (Num (bigint 2))) (Sub (Leaf 392) (Num (bigint 1)))))
+; 40 (x + 2 * d + 1) / (2 * d + 2)        Intent, n = x   (Java: the same)
+(Root 40 (Div (Add (Add (Leaf 401) (Mul (Num (bigint 2)) (Leaf 402))) (Num (bigint 1)))
+              (Add (Mul (Num (bigint 2)) (Leaf 402)) (Num (bigint 2)))))
+; 41 (a - 1 + d) / (d + 1)                no Intent   (Java: no match; the constants differ by 2)
+(Root 41 (Div (Add (Sub (Leaf 411) (Num (bigint 1))) (Leaf 412)) (Add (Leaf 412) (Num (bigint 1)))))
+; 42 (x % y + d) / (d + 1)                Intent, n = x % y   (Java: the same)
+(Root 42 (Div (Add (Rem (Leaf 421) (Leaf 423)) (Leaf 422)) (Add (Leaf 422) (Num (bigint 1)))))
+; 43 (x / y + d) / (d + 1)                Intent, n = x / y   (Java: the same)
+(Root 43 (Div (Add (Div (Leaf 431) (Leaf 433)) (Leaf 432)) (Add (Leaf 432) (Num (bigint 1)))))
+; 44 (x + d * 2 + 2) / (2 * d + 3)        Intent, n = x   (Java: no match, the product is in another order)
+(Root 44 (Div (Add (Add (Leaf 441) (Mul (Leaf 442) (Num (bigint 2)))) (Num (bigint 2)))
+              (Add (Mul (Num (bigint 2)) (Leaf 442)) (Num (bigint 3)))))
+; 45 (x + 1e27 + d) / (d + 1e27 + 1)      Intent, n = x   (Java: the same)
+(let $d45 (Add (Add (Leaf 452) (Num (from-string "1000000000000000000000000000"))) (Num (bigint 1))))
+(Root 45 (Div (Add (Add (Leaf 451) (Num (from-string "1000000000000000000000000000"))) (Leaf 452)) $d45))
+; 46 (x - y + d) / (d + 1)                Intent, n = x - y   (Java: no match, a subtracted term in n)
+(Root 46 (Div (Add (Sub (Leaf 461) (Leaf 463)) (Leaf 462)) (Add (Leaf 462) (Num (bigint 1)))))
+
 ; Both phases.  The readings phase is optional (run_facts.py stops after match,
 ; and the Intent rows below are the same without it); it runs here so that the
 ; first three checks cover it.
@@ -106,14 +146,33 @@
 ; Cases 23-30.
 (check (Intent 23 (Sub (Leaf 231) (Leaf 233)) (Leaf 232) 0))
 (check (Intent 24 (Add (Leaf 243) (Sub (Leaf 241) (Leaf 243))) (Leaf 242) 0))
-(fail (check (Intent 25 n d c)))
-(fail (check (Intent 26 n d c)))
+(check (Intent 25 (Leaf 251) (Add (Leaf 252) (Num (bigint 1))) 0))
+(check (Intent 26 (Leaf 261) (Add (Leaf 262) (Num (bigint 5))) 0))
 (check (Intent 27 (Add (Leaf 271) (Num (bigint 5))) (Leaf 272) 0))
 (check (Intent 28 $n28 (Leaf 282) 0))
 (check (= $n28 (Add (Leaf 281) (Num (from-string "10000000000000000000")))))
 (check (Intent 29 $n29 (Leaf 292) 0))
 (check (= $n29 (Add (Leaf 291) (Num (from-string "2000000000000000000000000000")))))
 (fail (check (Intent 30 n d c)))
+
+; Cases 31-46.
+(check (Intent 31 (Leaf 311) (Add (Leaf 312) (Num (bigint 1))) 0))
+(check (Intent 32 (Leaf 321) (Sub (Leaf 322) (Num (bigint 3))) 0))
+(fail (check (Intent 33 n d c)))
+(fail (check (Intent 34 n d c)))
+(fail (check (Intent 35 n d c)))
+(check (Intent 36 (Add (Leaf 361) (Leaf 363)) (Add (Num (bigint 1)) (Leaf 362)) 0))
+(check (Intent 37 (Leaf 371) (Add (Leaf 372) (Num (bigint 2))) 0))
+(check (Intent 38 $n38 (Add (Leaf 382) (Num (bigint 1))) 0))
+(check (Intent 39 (Leaf 391) (Sub (Leaf 392) (Num (bigint 1))) 0))
+(check (Intent 40 (Leaf 401) (Add (Mul (Num (bigint 2)) (Leaf 402)) (Num (bigint 2))) 0))
+(fail (check (Intent 41 n d c)))
+(check (Intent 42 (Rem (Leaf 421) (Leaf 423)) (Add (Leaf 422) (Num (bigint 1))) 0))
+(check (Intent 43 (Div (Leaf 431) (Leaf 433)) (Add (Leaf 432) (Num (bigint 1))) 0))
+(check (Intent 44 (Leaf 441) (Add (Mul (Num (bigint 2)) (Leaf 442)) (Num (bigint 3))) 0))
+(check (Intent 45 (Leaf 451) $d45 0))
+(check (= $d45 (Add (Leaf 452) (Num (from-string "1000000000000000000000000001")))))
+(check (Intent 46 (Sub (Leaf 461) (Leaf 463)) (Add (Leaf 462) (Num (bigint 1))) 0))
 
 (print-size)
 (print-function Intent :mode csv)
