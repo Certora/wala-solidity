@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,8 @@ import com.ibm.wala.util.collections.HashMapFactory;
  *
  * <p>For each method with a candidate, one egglog process runs {@code rules.egg},
  * {@code phase1.egg} and the method's facts (see {@link EgglogExport}), and prints the
- * {@code IntentVal} rows: site, numerator value, divisor value, condition. If egglog cannot be
+ * {@code IntentVal} rows (site, numerator value, divisor value, condition) and the
+ * {@code IntentSum} rows, for a numerator that is the sum of two values. If egglog cannot be
  * run or fails, the Java matchers decide that method, and the log and standard error say so.
  */
 final class EgglogPhase1 {
@@ -48,7 +50,7 @@ final class EgglogPhase1 {
 	private static final String LOG = setting("egglogPhase1Log", "EGGLOG_PHASE1_LOG", null);
 	private static final long TIMEOUT_SECONDS = 20;
 	private static final String RUN = "(run-schedule (saturate (run written)) (saturate (run match)))\n"
-			+ "(print-function IntentVal :mode csv)\n";
+			+ "(print-function IntentVal :mode csv)\n(print-function IntentSum :mode csv)\n";
 
 	private static String rules;
 
@@ -70,13 +72,19 @@ final class EgglogPhase1 {
 		final int numerator;
 		/** The factors behind a negative {@link #numerator}; null otherwise. */
 		final int[] productFactors;
+		/**
+		 * Two values whose sum is N, when N has no value of its own, as in
+		 * {@code (x + d - 1 + y) / d}; null otherwise. {@link #numerator} is then 0.
+		 */
+		final int[] addends;
 		final int divisorVN;
 		/** Pairs {phi def, operand index} that must be infeasible; empty if the reading always holds. */
 		final List<int[]> dead;
 
-		Found(int numerator, int[] productFactors, int divisorVN, List<int[]> dead) {
+		Found(int numerator, int[] productFactors, int[] addends, int divisorVN, List<int[]> dead) {
 			this.numerator = numerator;
 			this.productFactors = productFactors;
+			this.addends = addends;
 			this.divisorVN = divisorVN;
 			this.dead = dead;
 		}
@@ -96,10 +104,12 @@ final class EgglogPhase1 {
 			if (text == null) {
 				return Collections.emptyMap(); // no division and no sum or product with an indicator
 			}
-			List<int[]> rows = egglog(text);
+			List<int[]> rows = new ArrayList<>();
+			List<int[]> sums = new ArrayList<>();
+			egglog(text, rows, sums);
 			Map<Integer, Found> found = HashMapFactory.make();
 			for (SSABinaryOpInstruction root : facts.rootInstructions()) {
-				Found f = choose(root, rows, facts);
+				Found f = choose(root, rows, sums, facts);
 				if (f != null) {
 					found.put(root.getDef(), f);
 				}
@@ -122,7 +132,7 @@ final class EgglogPhase1 {
 	 * e-class: the code may not have computed it when it reaches the root. For a division the
 	 * divisor operand itself comes first; an unconditional row comes before a conditional one.
 	 */
-	private static Found choose(SSABinaryOpInstruction root, List<int[]> rows, EgglogExport facts) {
+	private static Found choose(SSABinaryOpInstruction root, List<int[]> rows, List<int[]> sums, EgglogExport facts) {
 		int v = root.getDef();
 		List<Integer> walk = facts.walk(v);
 		Map<Integer, Integer> rank = HashMapFactory.make();
@@ -141,8 +151,25 @@ final class EgglogPhase1 {
 				continue;
 			}
 			long[] key = { r[3], Math.max(n, 0), d };
-			if (bestKey == null || key[0] < bestKey[0] || (key[0] == bestKey[0]
-					&& (key[1] < bestKey[1] || (key[1] == bestKey[1] && key[2] < bestKey[2])))) {
+			if (bestKey == null || Arrays.compare(key, bestKey) < 0) {
+				best = r;
+				bestKey = key;
+			}
+		}
+		if (best != null) {
+			return new Found(best[1], facts.productFactors(best[1]), null, best[2], facts.dead(best[3]));
+		}
+		// no value is N: N as the sum of two values the root's expression reaches
+		for (int[] r : sums) {
+			Integer a1 = rank.get(r[1]);
+			Integer a2 = rank.get(r[2]);
+			Integer d = rank.get(r[3]);
+			if (r[0] != v || a1 == null || a2 == null || d == null || r[1] <= 0 || r[2] <= 0 || r[3] <= 0
+					|| r[1] == v || r[2] == v) {
+				continue;
+			}
+			long[] key = { r[4], a1, a2, d };
+			if (bestKey == null || Arrays.compare(key, bestKey) < 0) {
 				best = r;
 				bestKey = key;
 			}
@@ -150,11 +177,15 @@ final class EgglogPhase1 {
 		if (best == null) {
 			return null;
 		}
-		return new Found(best[1], facts.productFactors(best[1]), best[2], facts.dead(best[3]));
+		return new Found(0, null, new int[] { best[1], best[2] }, best[3], facts.dead(best[4]));
 	}
 
-	/** Runs the rules on the facts; the {@code IntentVal} rows as {site, numerator, divisor, condition}. */
-	private static List<int[]> egglog(String facts) throws IOException, InterruptedException {
+	/**
+	 * Runs the rules on the facts. Adds the {@code IntentVal} rows to {@code rows} as {site,
+	 * numerator, divisor, condition} and the {@code IntentSum} rows to {@code sums} as {site,
+	 * addend, addend, divisor, condition}.
+	 */
+	private static void egglog(String facts, List<int[]> rows, List<int[]> sums) throws IOException, InterruptedException {
 		Path program = Files.createTempFile("phase1-", ".egg");
 		Path out = Files.createTempFile("phase1-", ".out");
 		Path err = Files.createTempFile("phase1-", ".err");
@@ -171,15 +202,16 @@ final class EgglogPhase1 {
 				throw new IOException("egglog exit " + p.exitValue() + ": "
 						+ String.join(" | ", lines.subList(Math.max(0, lines.size() - 3), lines.size())));
 			}
-			List<int[]> rows = new ArrayList<>();
 			for (String line : Files.readAllLines(out, StandardCharsets.UTF_8)) {
+				String[] f = line.split(",");
 				if (line.startsWith("IntentVal,")) {
-					String[] f = line.split(",");
 					rows.add(new int[] { Integer.parseInt(f[1]), Integer.parseInt(f[2]), Integer.parseInt(f[3]),
 							Integer.parseInt(f[4]) });
+				} else if (line.startsWith("IntentSum,")) {
+					sums.add(new int[] { Integer.parseInt(f[1]), Integer.parseInt(f[2]), Integer.parseInt(f[3]),
+							Integer.parseInt(f[4]), Integer.parseInt(f[5]) });
 				}
 			}
-			return rows;
 		} finally {
 			Files.deleteIfExists(program);
 			Files.deleteIfExists(out);

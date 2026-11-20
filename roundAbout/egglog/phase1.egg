@@ -19,3 +19,11 @@
 (rule ((Intent v n d c) (Val a n) (Val b d))
       ((IntentVal v a b c))
       :ruleset match)
+
+; IntentSum v a1 a2 b c: an Intent row of site v whose n is the sum of the
+; values a1 and a2.  Java uses it when n has no value of its own, as in
+; (x + d - 1 + y) / d, where the code never computes x + y.
+(relation IntentSum (i64 i64 i64 i64 i64))
+(rule ((Intent v n d c) (= n (Add x y)) (Val a1 x) (Val a2 y) (Val b d))
+      ((IntentSum v a1 a2 b c))
+      :ruleset match)

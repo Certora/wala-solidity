@@ -1,0 +1,66 @@
+; Hand-written checks for phase1.egg (egglog 3.0.0): the rows Java reads when
+; it takes its idioms from the rules.  Run from this directory:
+;   cd roundAbout/egglog && egglog phase1-cases.egg
+; Expected: every check passes.
+;
+; The facts are written the way EgglogExport writes them: one let per value,
+; a Root per candidate, and a Val per value.
+
+(include "rules.egg")
+(include "phase1.egg")
+
+; Method 1.  v18 = (x + d - 1) / d, with x = v11 and d = v12.
+(let $v11 (Leaf 11))
+(let $v12 (Leaf 12))
+(let $v13 (Num (bigint 1)))
+(let $v14 (Add $v11 $v12))
+(let $v15 (Sub $v14 $v13))
+(let $v18 (Div $v15 $v12))
+(Root 18 $v18)
+(Val 11 $v11) (Val 12 $v12) (Val 13 $v13) (Val 14 $v14) (Val 15 $v15) (Val 18 $v18)
+
+; Method 2.  v28 = (x + d - 1 + y) / d, with x = v21, d = v22, y = v23.
+; n is x + y, which no value holds.
+(let $v21 (Leaf 21))
+(let $v22 (Leaf 22))
+(let $v23 (Leaf 23))
+(let $v24 (Num (bigint 1)))
+(let $v25 (Add $v21 $v22))
+(let $v26 (Sub $v25 $v24))
+(let $v27 (Add $v26 $v23))
+(let $v28 (Div $v27 $v22))
+(Root 28 $v28)
+(Val 21 $v21) (Val 22 $v22) (Val 23 $v23) (Val 24 $v24) (Val 25 $v25) (Val 26 $v26) (Val 27 $v27) (Val 28 $v28)
+
+; Method 3.  v38 = mulDiv(x, y, d) + [x * y % d != 0], with x = v31, y = v32,
+; d = v33.  The call v34 is a quotient of the product x * y, which has no value
+; of its own and is named -34.  The remainder is taken of v35 = x * y.
+(let $v31 (Leaf 31))
+(let $v32 (Leaf 32))
+(let $v33 (Leaf 33))
+(let $p34 (Mul $v31 $v32))
+(let $v34 (Div $p34 $v33))
+(let $v35 (Mul $v31 $v32))
+(let $v36 (Rem $v35 $v33))
+(let $v37 (Ind $v36 0))
+(let $v38 (Add $v34 $v37))
+(Root 34 $v34)
+(Root 38 $v38)
+(Val 31 $v31) (Val 32 $v32) (Val 33 $v33) (Val -34 $p34) (Val 34 $v34) (Val 35 $v35) (Val 36 $v36) (Val 37 $v37)
+(Val 38 $v38)
+
+(run-schedule (saturate (run written)) (saturate (run match)))
+
+; 1: n is the value v11.
+(check (IntentVal 18 11 12 0))
+; 2: no value is n; it is the sum of v21 and v23, in either order.
+(fail (check (IntentVal 28 a b c)))
+(check (IntentSum 28 21 23 22 0))
+(check (IntentSum 28 23 21 22 0))
+; 3: n is both the product named -34 and the value v35; the plain quotient v34 has no row.
+(check (IntentVal 38 -34 33 0))
+(check (IntentVal 38 35 33 0))
+(fail (check (IntentVal 34 a b c)))
+
+(print-function IntentVal :mode csv)
+(print-function IntentSum :mode csv)

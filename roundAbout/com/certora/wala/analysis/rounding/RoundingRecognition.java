@@ -146,7 +146,7 @@ public class RoundingRecognition {
 						divDir.put(bin.iIndex(), Direction.Neither); // x / 1 == x: exact for every dividend
 						return;
 					}
-					Ceiling fromRule = ruleCeiling("bias", bin.getDef());
+					Ceiling fromRule = ruleCeiling("bias", bin);
 					int a = DISABLE_INTENT || fromRules != null ? -1 : biasNumerator(bin);
 					if (fromRule != null) {
 						divDir.put(bin.iIndex(), Direction.Up);
@@ -289,20 +289,40 @@ public class RoundingRecognition {
 		public final int divisorVN;
 		/** Pairs {phi def, operand index} that must be infeasible for the value to be a ceiling. */
 		public final List<int[]> deadPhiOperands;
+		/**
+		 * Only with {@link EgglogPhase1}, otherwise null: N is the sum of these two values and the
+		 * code never computes it as one value, as in {@code (x + d - 1 + y) / d}. Then
+		 * {@code dividendFactors} holds one value number, the division's dividend, which nothing
+		 * but the division reads; Q defines that value to be the sum.
+		 */
+		public final int[] dividendAddends;
 
 		Ceiling(String kind, int[] dividendFactors, int divisorVN, List<int[]> deadPhiOperands) {
+			this(kind, dividendFactors, divisorVN, deadPhiOperands, null);
+		}
+
+		Ceiling(String kind, int[] dividendFactors, int divisorVN, List<int[]> deadPhiOperands, int[] dividendAddends) {
 			this.kind = kind;
 			this.dividendFactors = dividendFactors;
 			this.divisorVN = divisorVN;
 			this.deadPhiOperands = deadPhiOperands;
+			this.dividendAddends = dividendAddends;
 		}
 	}
 
-	/** The ceiling the egglog rules read the definition of {@code vn} as, or null ({@link #fromRules}). */
-	private Ceiling ruleCeiling(String kind, int vn) {
-		EgglogPhase1.Found f = fromRules == null ? null : fromRules.get(vn);
+	/** The ceiling the egglog rules read the value {@code inst} defines as, or null ({@link #fromRules}). */
+	private Ceiling ruleCeiling(String kind, SSABinaryOpInstruction inst) {
+		EgglogPhase1.Found f = fromRules == null ? null : fromRules.get(inst.getDef());
 		if (f == null) {
 			return null;
+		}
+		if (f.addends != null) {
+			// N is a sum with no value number. Q gives it the dividend's, so nothing else may read that.
+			int dividend = inst.getUse(0);
+			if (inst.getOperator() != IBinaryOpInstruction.Operator.DIV || !readOnlyBy(dividend, inst)) {
+				return null;
+			}
+			return new Ceiling(kind, new int[] { dividend }, f.divisorVN, f.dead, f.addends);
 		}
 		int[] numerator;
 		if (f.productFactors == null) {
@@ -316,6 +336,25 @@ public class RoundingRecognition {
 			numerator = all.toArray();
 		}
 		return new Ceiling(kind, numerator, f.divisorVN, f.dead);
+	}
+
+	/** True if {@code vn} is a sum or difference whose only reader is {@code inst}. */
+	private boolean readOnlyBy(int vn, SSAInstruction inst) {
+		SSAInstruction def = dug.du().getDef(vn);
+		if (!(def instanceof SSABinaryOpInstruction)
+				|| (((SSABinaryOpInstruction) def).getOperator() != IBinaryOpInstruction.Operator.ADD
+						&& ((SSABinaryOpInstruction) def).getOperator() != IBinaryOpInstruction.Operator.SUB)) {
+			return false;
+		}
+		Iterator<SSAInstruction> uses = dug.du().getUses(vn);
+		int count = 0;
+		while (uses.hasNext()) {
+			if (uses.next() != inst) {
+				return false;
+			}
+			count++;
+		}
+		return count == 1;
 	}
 
 	/** The ceiling that the definition of {@code vn} (a phi, add or mul) computes, or null. */
@@ -364,12 +403,12 @@ public class RoundingRecognition {
 				SSABinaryOpInstruction b = (SSABinaryOpInstruction) inst;
 				Ceiling c = null;
 				if (b.getOperator() == IBinaryOpInstruction.Operator.ADD) {
-					c = fromRules != null ? ruleCeiling("indicator", b.getDef()) : indicatorCeiling(b, literals);
+					c = fromRules != null ? ruleCeiling("indicator", b) : indicatorCeiling(b, literals);
 					if (c == null) {
 						c = guardedPredecrementCeiling(b, ir, cfg, dom, literals);
 					}
 				} else if (b.getOperator() == IBinaryOpInstruction.Operator.MUL) {
-					c = fromRules != null ? ruleCeiling("masked", b.getDef()) : maskedPredecrementCeiling(b, literals);
+					c = fromRules != null ? ruleCeiling("masked", b) : maskedPredecrementCeiling(b, literals);
 				}
 				if (c != null) {
 					ceilings.put(b.getDef(), c);

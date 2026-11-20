@@ -222,9 +222,26 @@ public class RoundingGraphBuilder {
 			return false;
 		}
 		int root = owner[inst.getDef()];
+		if (c.dividendAddends != null) {
+			// E-graph prototype: N is a sum the code never computes as one value. The dividend's
+			// value number, which only this division reads, stands for N in Q.
+			replace(new RoundingGraph.Add(owner[c.dividendFactors[0]], owner[c.dividendAddends[0]],
+					owner[c.dividendAddends[1]]));
+		}
 		put(new RoundingGraph.Div(root, owners(c.dividendFactors), owner[c.divisorVN], ceilingRounds(inst.getDef()), true));
 		coneByRoot.put(root, cone(root, inst, c));
 		return true;
+	}
+
+	/** Puts {@code nd} in the place of the node its value number has, keeping the equation order. */
+	private void replace(Node nd) {
+		Node old = nodeByOwner.put(nd.vn(), nd);
+		int i = old == null ? -1 : equationOrder.indexOf(old);
+		if (i >= 0) {
+			equationOrder.set(i, nd);
+		} else {
+			equationOrder.add(nd);
+		}
 	}
 
 	private void put(Node nd) {
